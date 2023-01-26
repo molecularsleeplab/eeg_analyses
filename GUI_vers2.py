@@ -11,7 +11,7 @@ import PySimpleGUI as sg
 import matplotlib.pyplot as plt
 from random import seed
 from random import randint
-
+import matplotlib.transforms as mtransforms
 from backbone import *
 
 # ----- Design options -------
@@ -148,9 +148,9 @@ def tab(i,n_mice):
                    sg.FileBrowse(key=f"-tsv_browse-{i,j}",file_types=(("TSV files", "*.tsv"),)), sg.VSeparator(),
                    sg.T("Electrode: "), 
                           sg.InputText(key=f"-electrode-{i,j}",size=(3,1))]] 
-        #l += [[sg.HSeparator()],
-        #      [sg.T("... or direct path to folder only containing the group files that are named accordingly:"),
-        #       sg.InputText(key = f"-group_folder-{i}", size = (55,1))]]
+        l += [[sg.HSeparator()],
+              [sg.T("... or direct path to folder only containing the group files that are named exactly equal besides extension:"),
+               sg.InputText(key = f"-group_folder-{i}", size = (55,1))]]
         return l
 
 def tab_name(i):
@@ -211,119 +211,148 @@ while True:
         #print('values:', values)
         
     elif event == '-Run-':
-        window, event, values = sg.read_all_windows() #Read all values from both windows
-        
-        bin_power_time      = values['-power_time-']
-        bin_power_diag      = values['-power_diagram-']
-        bin_limit_hour      = values['-limit_hours-']
-        if bin_power_diag: fig1, ax1 = plt.subplots(figsize=(6,4), dpi=600); int1 = range(0,80) # Set plotting range
-        if bin_power_time: fig2, ax2 = plt.subplots(figsize=(6,4), dpi=600) #Set plot
-        
-        
-        group_labels = list(range(index1))
-        for i in range(index1): # Loop through all groups
-            in_ID_temp = []; in_edf_temp = []; in_tsv_temp = []; in_electrode_temp = []; #Initialize storage for user input
-            group_labels[i] = saved_values[f'-group_label-{i}'] #Save group labels to use them in naming of the output file
+        if saved_check:
+            window, event, values = sg.read_all_windows() #Read all values from both windows
             
-            for j in range(n_mice): # Loop through all mice
-                in_ID_temp.append([saved_values[f'-id-({i}, {j})']])
-                in_edf_temp.append([saved_values[f'-edf-({i}, {j})']])
-                in_tsv_temp.append([saved_values[f'-tsv-({i}, {j})']])
-                in_electrode_temp.append([saved_values[f'-electrode-({i}, {j})']])
+            bin_power_time      = values['-power_time-']
+            bin_power_diag      = values['-power_diagram-']
+            bin_limit_hour      = values['-limit_hours-']
+            bin_export_dat      = values['-data_files-']
+            if bin_power_diag: fig1, ax1 = plt.subplots(figsize=(6,4), dpi=600); int1 = range(0,80) # Set plotting range
+            if bin_power_time: fig2, ax2 = plt.subplots(figsize=(6,4), dpi=600) #Set plot
+            
+            
+            group_labels = list(range(index1))
+            for i in range(index1): # Loop through all groups
+                in_ID_temp = []; in_edf_temp = []; in_tsv_temp = []; in_electrode_temp = []; #Initialize storage for user input
+                group_labels[i] = saved_values[f'-group_label-{i}'] #Save group labels to use them in naming of the output file
                 
-            #Collect input and files
-            in_ID.append([i, in_ID_temp]); in_edf.append([i, in_edf_temp]) # Structure: ==>   in_edf[#groups][0 = group number, 1 = files][files][0 = file]
-            in_tsv.append([i, in_tsv_temp]); in_electrode.append([i, in_electrode_temp]); 
-            
-            if values['-fs-'].isnumeric(): fs = int(values['-fs-']);
-            else: print("ERROR. 'fs' not numeric. Automatically choosing sample frewquency s.t. fs = 400"); fs = 400;
-            
-            
-            
-            if isfloat(values['-filter_N-']): filter_N = float(values['-filter_N-']);
-            else: print("ERROR. 'filter_N' not numeric. Automatically choosing filter_N = 8/2"); filter_N = 8/2;
-            if isfloat(values['-filter_Wn1-']): filter_Wn1 = float(values['-filter_Wn1-']);
-            else: print("ERROR. 'filter_Wn1' not numeric. Automatically choosing filter_Wn1 = 0.3"); filter_Wn1 = 0.3;
-            if isfloat(values['-filter_Wn2-']): filter_Wn2 = float(values['-filter_Wn2-']);
-            else: print("ERROR. 'filter_Wn2' not numeric. Automatically choosing filter_Wn2 = 30"); filter_Wn2 = 30;
-            
-            
-            #Compute filtered data to get preprossered data 
-            data2, n, id_def_time     = get_filtered_data(in_ID, in_edf, in_tsv, in_electrode, i, fs, filter_N, filter_Wn1, filter_Wn2)
-            
-            #Limit hours
-            if bin_limit_hour: 
-                if len(values['-In_date-'] > 6) and len(values['-Out_date-'] > 6):
-                    In_date = values['-In_date-']; Out_date = values['-Out_date-']
-                else: 
-                    print("ERROR. Dates in limit not provided. Choosing random dates"); In_date = '(12, 7, 2022)'; Out_date = '(12, 7, 2022)';
-                if type(values['-st_light-']) == int and type(values['-sl_light-']) == int: 
-                    In_time = int(values['-st_light-']); Out_time = int(values['-sl_light-'])
-                else: "ERROR. Clock in limit hours not provided properly as integer. Automatically choosing all available hours."; In_time = 7; Out_time = 7;
+                for j in range(n_mice): # Loop through all mice
+                    in_ID_temp.append([saved_values[f'-id-({i}, {j})']])
+                    in_edf_temp.append([saved_values[f'-edf-({i}, {j})']])
+                    in_tsv_temp.append([saved_values[f'-tsv-({i}, {j})']])
+                    in_electrode_temp.append([saved_values[f'-electrode-({i}, {j})']])
+                    
+                #Collect input and files
+                in_ID.append([i, in_ID_temp]); in_edf.append([i, in_edf_temp]) # Structure: ==>   in_edf[#groups][0 = group number, 1 = files][files][0 = file]
+                in_tsv.append([i, in_tsv_temp]); in_electrode.append([i, in_electrode_temp]); 
                 
-            #Get export relevant input
-            if values['-sleep_stage-'].isnumeric(): ss = int(values['-sleep_stage-']);
-            else: print("ERROR. Sleep stage not numeric. Automatically choosing sleep stage = 1"); ss = 1;
-            bin_limit_hour = values['-limit_hours-']
-            
-            # Power across frequencies
-            if bin_power_diag and n > 0:
-                cf_l   = 0.5; cf_h   = 100;
-                if  bin_limit_hour:
-                    st_light, sl_light      =  get_hours(id_def_time[i], [In_time,Out_time], [In_date,Out_date])
-                else:
-                    st_light = int(0); sl_light = int(24*60*60/4)
-                f, AvgTrace, stdP, stdM = power_freq(data2, n, cf_l, cf_h, ss, st_light, sl_light, fs)
+                if values['-fs-'].isnumeric(): fs = int(values['-fs-']);
+                else: print("ERROR. 'fs' not numeric. Automatically choosing sample frewquency s.t. fs = 400"); fs = 400;
                 
-                #Plot
-                ax1.set_xlim([0, 20]) # Set xlim wrt. plotting range
-                ax1.set_xlabel("Frequency [Hz]", fontweight='bold') #Maybe these should be user defined as well?
-                ax1.set_ylabel("Relative EEG Power [% average power]") #Maybe these should be user defined as well?
                 
-                ax1.plot(f[int1], AvgTrace[int1], '-', linewidth = 1, 
-                        label = saved_values[f'-group_label-{i}'],
-                        color = (int(saved_values[f'-group_color_r-{i}'])/256, 
-                                 int(saved_values[f'-group_color_g-{i}'])/256, 
-                                 int(saved_values[f'-group_color_b-{i}'])/256)
-                        ) # Plots power spectrum
-                ax1.fill_between(f[int1], stdP[int1], stdM[int1], alpha = 0.2,
-                                color = (int(saved_values[f'-group_color_r-{i}'])/256, 
-                                         int(saved_values[f'-group_color_g-{i}'])/256, 
-                                         int(saved_values[f'-group_color_b-{i}'])/256)
-                                )
-                ax1.legend()
-               
-            if bin_power_time and n > 0:
-                cf_l = 6; cf_h = 10; cf_l_norm = 0.5; cf_h_norm = 30
-                if bin_limit_hour:
-                    st_light, sl_light      =  get_hours(id_def_time[i], [In_time,Out_time], [In_date,Out_date])
-                else:
-                    st_light = int(0); sl_light = int(24*60*60/4)
-                print(bin_limit_hour); print(st_light); print(sl_light);
-                AvgTrace, stdP, stdM = power_time(data2, n, cf_l, cf_h, cf_l_norm, cf_h_norm, ss, st_light, sl_light, fs)
-                #Plot
-                ax2.set_xlim([0, 24]) # Set xlim wrt. plotting range
-                ax2.set_ylim([150, 500]) # Set xlim wrt. plotting range
-                ax2.set_xlabel("Time [Hours]", fontweight='bold') #Maybe these should be user defined as well?
-                ax2.set_ylabel("Relative EEG Power [% average power]") #Maybe these should be user defined as well?
+                
+                if isfloat(values['-filter_N-']): filter_N = float(values['-filter_N-']);
+                else: print("ERROR. 'filter_N' not numeric. Automatically choosing filter_N = 8/2"); filter_N = 8/2;
+                if isfloat(values['-filter_Wn1-']): filter_Wn1 = float(values['-filter_Wn1-']);
+                else: print("ERROR. 'filter_Wn1' not numeric. Automatically choosing filter_Wn1 = 0.3"); filter_Wn1 = 0.3;
+                if isfloat(values['-filter_Wn2-']): filter_Wn2 = float(values['-filter_Wn2-']);
+                else: print("ERROR. 'filter_Wn2' not numeric. Automatically choosing filter_Wn2 = 30"); filter_Wn2 = 30;
+                
+                
+                #Compute filtered data to get preprossered data 
+                folder_path = saved_values[f"-group_folder-{i}"] 
+                data2, n, id_def_time     = get_filtered_data(in_ID, in_edf, in_tsv, in_electrode, i, fs, filter_N, filter_Wn1, filter_Wn2, folder_path)
 
-                ax2.plot(range(24), AvgTrace, '-', linewidth =1, 
-                        label = saved_values[f'-group_label-{i}'], 
-                        color = (int(saved_values[f'-group_color_r-{i}'])/256, 
-                                 int(saved_values[f'-group_color_g-{i}'])/256, 
-                                 int(saved_values[f'-group_color_b-{i}'])/256)
-                        )
-                ax2.fill_between(range(24),stdP, stdM, alpha=0.2, 
-                                color = (int(saved_values[f'-group_color_r-{i}'])/256, 
-                                         int(saved_values[f'-group_color_g-{i}'])/256, 
-                                         int(saved_values[f'-group_color_b-{i}'])/256)
-                                )
-                ax2.legend()
-            
-        if bin_power_diag: fig1.savefig(values['-export_path-'] + 'PowerFreq' + '-'.join(group_labels) )
-        if bin_power_time: fig2.savefig(values['-export_path-'] + 'PowerTime' + '-'.join(group_labels) )
+                #Limit hours
+                if bin_limit_hour: 
+                    if len(values['-In_date-']) > 6 and len(values['-Out_date-']) > 6:
+                        In_date = values['-In_date-']; Out_date = values['-Out_date-']
+                    else: 
+                        print("ERROR. Dates in limit not provided. Choosing random dates"); In_date = '(12, 7, 2022)'; Out_date = '(12, 7, 2022)';
+                    if type(values['-st_light-']) == int and type(values['-sl_light-']) == int: 
+                        In_time = int(values['-st_light-']); Out_time = int(values['-sl_light-'])
+                    else: "ERROR. Clock in limit hours not provided properly as integer. Automatically choosing all available hours."; In_time = 7; Out_time = 7;
+                    
+                #Get export relevant input
+                if values['-sleep_stage-'].isnumeric(): ss = int(values['-sleep_stage-']);
+                else: print("ERROR. Sleep stage not numeric. Automatically choosing sleep stage = 1"); ss = 1;
+                bin_limit_hour = values['-limit_hours-']
+                
+                # Power across frequencies
+                if bin_power_diag and n > 0:
+                    cf_l   = 0.5; cf_h   = 100;
+                    if  bin_limit_hour:
+                        st_light, sl_light      =  get_hours(id_def_time[i], [In_time,Out_time], [In_date,Out_date])
+                    else:
+                        st_light = int(0); sl_light = int(24*60*60/4)
+                    f, AvgTrace, stdP, stdM = power_freq(data2, n, cf_l, cf_h, ss, st_light, sl_light, fs)
+                    a_freq = np.asarray([ AvgTrace, stdP, stdM  ]);
+                    #Plot
+                    ax1.set_xlim([0, 20]) # Set xlim wrt. plotting range
+                    ax1.set_xlabel("Frequency [Hz]", fontweight='bold') #Maybe these should be user defined as well?
+                    ax1.set_ylabel("Relative EEG Power [% average power]") #Maybe these should be user defined as well?
+                    
+                    ax1.plot(f[int1], AvgTrace[int1], '-', linewidth = 1, 
+                            label = saved_values[f'-group_label-{i}'],
+                            color = (int(saved_values[f'-group_color_r-{i}'])/256, 
+                                     int(saved_values[f'-group_color_g-{i}'])/256, 
+                                     int(saved_values[f'-group_color_b-{i}'])/256)
+                            ) # Plots power spectrum
+                    ax1.fill_between(f[int1], stdP[int1], stdM[int1], alpha = 0.2,
+                                    color = (int(saved_values[f'-group_color_r-{i}'])/256, 
+                                             int(saved_values[f'-group_color_g-{i}'])/256, 
+                                             int(saved_values[f'-group_color_b-{i}'])/256)
+                                    )
+                    ax1.legend()
+                    
+                    # write .csv files 
+                    if bin_export_dat: 
+                        np.savetxt(add_path_separator(values['-export_path-'], 'PowerFreq_' + 'data_' + str(group_labels[i]) + '_group_' + str(i)), a_freq, delimiter=",",header='AvgTrace, stdP, stdM') 
 
-        break
+                #Power across time   
+                if bin_power_time and n > 0:
+                    cf_l = float(values['-HZ1-']); cf_h = float(values['-HZ2-']); cf_l_norm = 0.5; cf_h_norm = 30
+                    print(cf_l)
+                    if bin_limit_hour:
+                        st_light, sl_light      =  get_hours(id_def_time[i], [In_time,Out_time], [In_date,Out_date])
+                    else:
+                        st_light = int(0); sl_light = int(24*60*60/4)
+                    #print(bin_limit_hour); print(st_light); print(sl_light);
+                    AvgTrace, stdP, stdM = power_time(data2, n, cf_l, cf_h, cf_l_norm, cf_h_norm, ss, st_light, sl_light, fs)
+                    a_time = np.asarray([ AvgTrace, stdP, stdM  ]);
+                    #Plot
+                    #ax2.set_xlim([0, 24]) # Set xlim wrt. plotting range
+                    #ax2.set_ylim([150, 500]) # Set xlim wrt. plotting range
+                    ax2.set_xlabel("Hours [ZT]", fontweight='bold') #Maybe these should be user defined as well?
+                    ax2.set_ylabel("Relative EEG Power [% average power]") #Maybe these should be user defined as well?
+                    
+                    light_on = 7 #Should be user defined parameter
+                    t_zeitgeber = [];
+                    t_start_zeitgeber = (id_def_time[0][0].hour - light_on)
+                    for ii in range(24):
+                        t_zeitgeber.append((t_start_zeitgeber+ii)%24)
+                    
+
+                    ax2.plot(t_zeitgeber, AvgTrace, '-', linewidth =1, 
+                            label = saved_values[f'-group_label-{i}'], 
+                            color = (int(saved_values[f'-group_color_r-{i}'])/256, 
+                                     int(saved_values[f'-group_color_g-{i}'])/256, 
+                                     int(saved_values[f'-group_color_b-{i}'])/256)
+                            )
+                    ax2.fill_between(t_zeitgeber,stdP, stdM, alpha=0.2, 
+                                    color = (int(saved_values[f'-group_color_r-{i}'])/256, 
+                                             int(saved_values[f'-group_color_g-{i}'])/256, 
+                                             int(saved_values[f'-group_color_b-{i}'])/256)
+                                    )
+                    plt.xticks(np.arange(min(t_zeitgeber), max(t_zeitgeber)+1, 2.0))
+                    trans = mtransforms.blended_transform_factory(ax2.transData, ax2.transAxes)
+                    ax2.fill_between(t_zeitgeber, 0, 1, where=np.array(t_zeitgeber) > 11,
+                                    facecolor='gray', alpha=0.1, transform=trans)
+                    ax2.legend()
+                    
+                    # write .csv files 
+                    if bin_export_dat: 
+                        np.savetxt(add_path_separator(values['-export_path-'], 'PowerTime_' + 'data_' + str(group_labels[i]) + '_group_' + str(i)), a_time, delimiter=",",header='AvgTrace, stdP, stdM') 
+                    
+            #Save figures    
+            if bin_power_diag: 
+                fig1.savefig(add_path_separator(values['-export_path-'], 'PowerFreq' + 'plot' + '-'.join(group_labels)) )
+            if bin_power_time: 
+                fig2.savefig(add_path_separator(values['-export_path-'], 'PowerTime' + 'plot' + '-'.join(group_labels) ))
+                
+        else:
+            break
     
     elif event == '-power_time-':
         window1['-power_time-'].update(visible=False)
@@ -377,13 +406,8 @@ while True:
 
 window.close()
 
-#Input settings done. Next time export settings.
 
-#Include output file txt FFT
-#cut off frequencies
-#Include show figure/save figures to directory
 #Include merging option
-#Include "path"-option if all files are named accordingly
 #Read tsv more stable
 #Different deviations - sd or SEM
 

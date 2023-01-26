@@ -16,7 +16,32 @@ from scipy import signal
 import matplotlib.pyplot as plt
 from scipy.signal import butter, filtfilt
 
+# %% 
 
+def match_files(folder):
+    # Create a dictionary to store the matched files
+    matches = {}
+
+    # Iterate through all files in the folder
+    for file in os.listdir(folder):
+        # Get the file name without the extension
+        name, ext = os.path.splitext(file)
+
+        # If the name is already in the dictionary, add the current file to the list of matches
+        if name in matches:
+            matches[name].append(file)
+        # If the name is not in the dictionary, add it and add the current file as the first match
+        else:
+            matches[name] = [file]
+
+    # Return the dictionary of matched files
+    return matches
+
+# %% 
+
+def add_path_separator(path, file_name):
+    path_separator = os.path.sep
+    return path + path_separator + file_name
 
 # %% Function that computes power to time signal using periodogram estimation method
 def power2time(dat,ss,fs_v,st_light,sl_light):
@@ -84,16 +109,28 @@ def find_element_tsv(element, tsv_file):
 
 # %% Function that reads data from all exisiting files within a group
 
-def get_filtered_data(in_ID, in_edf, in_tsv, in_electrode, group_nr, fs, af, bf, cf):
+def get_filtered_data(in_ID, in_edf, in_tsv, in_electrode, group_nr, fs, af, bf, cf, folder_path):
     cluster_size = 4; epoch_size = fs*cluster_size                              #cluster and epoch_size
     
     b, a = signal.butter(af/2,[bf/(fs/2),cf/(fs/2)], 'bandpass', analog=False)  #Bandpass filter
     #Initialization
-    edf_files = []; tsv_files = []; id_input = []; data2 = []; start = 0; scores = []; id_def_time = []; n = 0;                          
-    #Cleaning input such that only files that exist are included
-    for i in range(len(in_edf[group_nr][1])): #Loops over number of possible mice len(tf[1][1]) ==> this could also be a user input, i.e. maximum number of mice for all groups
-        if os.path.exists(in_edf[group_nr][1][i][0]) and in_edf[group_nr][1][i][0].endswith('.edf'): edf_files.append(in_edf[group_nr][1][i][0])
-        if os.path.exists(in_tsv[group_nr][1][i][0]) and in_tsv[group_nr][1][i][0].endswith('.tsv'): tsv_files.append(in_tsv[group_nr][1][i][0]); id_input.append(in_ID[group_nr][1][i][0])                                         
+    edf_files = []; tsv_files = []; id_input = []; data2 = []; start = 0; scores = []; id_def_time = []; n = 0; 
+    if os.path.exists(folder_path):
+        
+        print("Using folder path for group " + str(group_nr))
+        m = match_files(folder_path); count = 0
+        for key in m:
+            if len(m[key]) == 2:
+                count =+ 1
+                for k in range(len(m[key])):
+                    if m[key][k].endswith('.edf'): edf_files.append(add_path_separator(folder_path, m[key][k]))
+                    if m[key][k].endswith('.tsv'): tsv_files.append(add_path_separator(folder_path, m[key][k]))
+                id_input.append(count)
+    else:                         
+        #Cleaning input such that only files that exist are included
+        for i in range(len(in_edf[group_nr][1])): #Loops over number of possible mice len(tf[1][1]) ==> this could also be a user input, i.e. maximum number of mice for all groups
+            if os.path.exists(in_edf[group_nr][1][i][0]) and in_edf[group_nr][1][i][0].endswith('.edf'): edf_files.append(in_edf[group_nr][1][i][0])
+            if os.path.exists(in_tsv[group_nr][1][i][0]) and in_tsv[group_nr][1][i][0].endswith('.tsv'): tsv_files.append(in_tsv[group_nr][1][i][0]); id_input.append(in_ID[group_nr][1][i][0])
     #Loop through all mice
     if len(range(min(len(edf_files), len(tsv_files)))) > 0:
         for i in range(min(len(edf_files), len(tsv_files))):
@@ -134,6 +171,7 @@ def get_filtered_data(in_ID, in_edf, in_tsv, in_electrode, group_nr, fs, af, bf,
 # %% Function for power across frequencies
 
 def power_freq(data2, n, cf_l, cf_h, ss, st_light, sl_light, fs):
+    cf_l = x_round(cf_l); cf_h = x_round(cf_h)
     p_r = []
     cluster_size = 4
     epoch_size = fs*cluster_size
@@ -159,9 +197,12 @@ def power_freq(data2, n, cf_l, cf_h, ss, st_light, sl_light, fs):
 
 # %% Power acrosss time
 
+def x_round(x): #Rounds to nearest quarter decimal
+    return round(x*4)/4
 
 def power_time(data2, n, cf_l, cf_h, cf_l_norm, cf_h_norm, ss, st_light, sl_light, fs):
-
+    cf_l = x_round(cf_l); cf_h = x_round(cf_h)
+    
     pnorm   = []; l_all   = []; t       = []
     cluster_size    = 4
     epoch_size      = fs*cluster_size
