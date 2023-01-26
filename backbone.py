@@ -10,7 +10,8 @@ Created on Fri Nov  4 13:48:28 2022
 from scipy import signal
 import numpy as np
 from datetime import datetime
-import mne_lib
+#import mne
+import mne_lib.mne
 import os
 from scipy import signal
 import matplotlib.pyplot as plt
@@ -135,7 +136,8 @@ def get_filtered_data(in_ID, in_edf, in_tsv, in_electrode, group_nr, fs, af, bf,
     if len(range(min(len(edf_files), len(tsv_files)))) > 0:
         for i in range(min(len(edf_files), len(tsv_files))):
             #Read edf file
-            data = mne.io.read_raw_edf(edf_files[i]); raw_data = data.get_data()
+            #data = mne.io.read_raw_edf(edf_files[i]); raw_data = data.get_data()
+            data = mne_lib.mne.io.read_raw_edf(edf_files[i]); raw_data = data.get_data()
             #Read tsv file
             raw_string = r"{}".format(tsv_files[i])
             with open(raw_string) as fi: tsv_file = fi.read().splitlines()
