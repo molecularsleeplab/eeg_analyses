@@ -173,7 +173,7 @@ def make_win2(n_mice):
                         [sg.Button('New group', font=('Any 12')), 
                           sg.Button('Save', font=('Any 12'))]]
     layout = layout_find_files
-    return sg.Window('Find files', layout,size=(1250, n_mice*40 + 130), finalize=True)
+    return sg.Window('Find files', layout,size=(1500, n_mice*40 + 130), finalize=True)
 
 
 window1, window2 = make_win1(), None # starts with 1 window open
