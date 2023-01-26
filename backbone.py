@@ -10,7 +10,7 @@ Created on Fri Nov  4 13:48:28 2022
 from scipy import signal
 import numpy as np
 from datetime import datetime
-import mne
+import mne_lib
 import os
 from scipy import signal
 import matplotlib.pyplot as plt
@@ -171,7 +171,6 @@ def get_filtered_data(in_ID, in_edf, in_tsv, in_electrode, group_nr, fs, af, bf,
 # %% Function for power across frequencies
 
 def power_freq(data2, n, cf_l, cf_h, ss, st_light, sl_light, fs):
-    cf_l = x_round(cf_l); cf_h = x_round(cf_h)
     p_r = []
     cluster_size = 4
     epoch_size = fs*cluster_size
