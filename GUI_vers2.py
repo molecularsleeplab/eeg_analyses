@@ -363,18 +363,18 @@ while True:
         window1['-txt3-'].update(visible=values['-power_time-'])
         window1['-power_time-'].update(visible=True)
     
-    elif event == '-limit_hours-':
-        window1['-limit_hours-'].update(visible=False)
-        window1['-txt1_hours-'].update(visible=values['-limit_hours-'])
-        window1['-st_light-'].update(visible=values['-limit_hours-'])
-        #window1['-txt2_hours-'].update(visible=values['-limit_hours-'])
-        window1['-In_date-'].update(visible=values['-limit_hours-'])
-        window1['-click_date1-'].update(visible=values['-limit_hours-'])
-        window1['-txt3_hours-'].update(visible=values['-limit_hours-'])
-        window1['-sl_light-'].update(visible=values['-limit_hours-'])
-        window1['-Out_date-'].update(visible=values['-limit_hours-'])
-        window1['-click_date2-'].update(visible=values['-limit_hours-'])
-        window1['-limit_hours-'].update(visible=True)
+    # elif event == '-limit_hours-':
+    #     window1['-limit_hours-'].update(visible=False)
+    #     window1['-txt1_hours-'].update(visible=values['-limit_hours-'])
+    #     window1['-st_light-'].update(visible=values['-limit_hours-'])
+    #     #window1['-txt2_hours-'].update(visible=values['-limit_hours-'])
+    #     window1['-In_date-'].update(visible=values['-limit_hours-'])
+    #     window1['-click_date1-'].update(visible=values['-limit_hours-'])
+    #     window1['-txt3_hours-'].update(visible=values['-limit_hours-'])
+    #     window1['-sl_light-'].update(visible=values['-limit_hours-'])
+    #     window1['-Out_date-'].update(visible=values['-limit_hours-'])
+    #     window1['-click_date2-'].update(visible=values['-limit_hours-'])
+    #     window1['-limit_hours-'].update(visible=True)
     
     
     elif event == '-find_files-':
