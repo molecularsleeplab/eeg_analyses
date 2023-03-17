@@ -91,6 +91,51 @@ def get_hours(recording, user_hour, user_date):
 
 #get_hours(id_def_time[0], [9,3], ['(11, 18, 2022)','(11, 19, 2022)']) 
 
+# %% Function that computes start/end index from user defined time of interest
+
+from datetime import datetime, timedelta
+
+def time_points_between(start_time, end_time, n):
+    """Create a list of n evenly spaced time points between start_time and end_time."""
+    
+    # Calculate the time difference between start_time and end_time
+    delta = (end_time - start_time) / (n - 1)
+    
+    # Create a list of n evenly spaced time points
+    time_points = [start_time + i * delta for i in range(n)]
+    
+    return time_points
+
+def find_time_idx(time_points, start_time, end_time) :
+    l = np.full([1, 1, len(time_points)], np.nan)[0][0]
+    
+    if start_time < end_time:
+        for i in range(len(time_points)): 
+            if time_points[i].hour >= start_time and time_points[i].hour < end_time: 
+                l[i] = 1*(i+1)
+                break
+    elif end_time < start_time: 
+        for i in range(len(time_points)): 
+            if time_points[i].hour >= start_time or time_points[i].hour < end_time: 
+                l[i] = 1*(i+1)
+                break
+    idx_start = np.where(l == np.nanmin(l))[0][0]
+    idx_end = idx_start + abs(start_time - end_time) * (len(time_points)/24)
+    return int(idx_start), int(idx_end)
+
+def get_hours2(recording,user_hour):
+    start_time = recording[0]
+    end_time   = recording[1]
+    n = 21600
+    
+    p = time_points_between(start_time, end_time, n)
+    st_light, sl_light = find_time_idx(p,user_hour[0], user_hour[1])
+    
+    return int(st_light), int(sl_light)
+
+
+
+
 
 
 
@@ -269,35 +314,20 @@ def list_files_with_extension(directory_path, extension):
 
 # %% Function that reads .tsv data from all exisiting files within a group
 
-def get_filtered_data2(in_ID, in_tsv, group_nr, folder_path):
-    #cluster_size = 4; epoch_size = fs*cluster_size                              #cluster and epoch_size
-    
-    #b, a = signal.butter(af/2,[bf/(fs/2),cf/(fs/2)], 'bandpass', analog=False)  #Bandpass filter
+def get_filtered_data2(in_ID, in_tsv, group_nr, folder_path):    
     #Initialization
     tsv_files = []; id_input = []; data2 = []; start = 0; scores = []; id_def_time = []; n = 0; 
     if os.path.exists(folder_path):
         print("Using folder path for group " + str(group_nr))
-        # m = match_files(folder_path); count = 0
-        # for key in m:
-        #     if len(m[key]) == 2:
-        #         count =+ 1
-        #         for k in range(len(m[key])):
-        #             if m[key][k].endswith('.edf'): edf_files.append(add_path_separator(folder_path, m[key][k]))
-        #             if m[key][k].endswith('.tsv'): tsv_files.append(add_path_separator(folder_path, m[key][k]))
-        #         id_input.append(count)
         tsv_files = list_files_with_extension(folder_path, ".tsv")
         id_input = list(range(len(tsv_files)))
     else:                         
         #Cleaning input such that only files that exist are included
         for i in range(len(in_tsv[group_nr][1])): #Loops over number of possible mice len(tf[1][1]) ==> this could also be a user input, i.e. maximum number of mice for all groups
-           # if os.path.exists(in_edf[group_nr][1][i][0]) and in_edf[group_nr][1][i][0].endswith('.edf'): edf_files.append(in_edf[group_nr][1][i][0])
             if os.path.exists(in_tsv[group_nr][1][i][0]) and in_tsv[group_nr][1][i][0].endswith('.tsv'): tsv_files.append(in_tsv[group_nr][1][i][0]); id_input.append(in_ID[group_nr][1][i][0])
     #Loop through all mice
     if len(tsv_files) > 0:
         for i in range(len(tsv_files)):
-            #Read edf file
-            #data = mne.io.read_raw_edf(edf_files[i]); raw_data = data.get_data()
-            #data = mne_lib.mne.io.read_raw_edf(edf_files[i]); raw_data = data.get_data()
             #Read tsv file
             raw_string = r"{}".format(tsv_files[i])
             with open(raw_string) as fi: tsv_file = fi.read().splitlines()
@@ -318,12 +348,6 @@ def get_filtered_data2(in_ID, in_tsv, group_nr, folder_path):
             Time_end    = datetime.strptime(Convert(tsv_file[Time_end_idx])[2], '%m/%d/%Y %H:%M:%S')
             id_def_time.append([Time_start, Time_end]) #id_def_time[#mice][2 (0 = start time, 1 = end time)]
             
-            #(in_electrode[group_nr][1][i][0]) Do check if this is provided and numeric, else just electrode 1. Then only filter this electrode to use less computation and storage. Then electrode is not needed to be provided in any other of the backbone functions.
-            #if in_electrode[group_nr][1][i][0].isnumeric():  electrode= int(in_electrode[group_nr][1][i][0]) - 1
-            #else: electrode = 0; print("ERROR. Electrode number not numeric for group " + str(group_nr) + " and mouse " + str(i) +". Automatically using electrode = 1.")
-            
-            #EEG = filtfilt(b, a, raw_data[electrode,:]*10E6)
-            #EEG1, h = signal.freqs(b, a, raw_data[0,:]); EEG2, h = signal.freqs(b, a, raw_data[1,:]) #apply filter
             #Store data
             data_temp = [id_input[i],scores]
             data2.append(data_temp)

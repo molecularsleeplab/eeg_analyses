@@ -34,7 +34,7 @@ input_text_column = [
     [sg.T('Butterworth parameters (N,Wn1,Wn2):', font=('Any 12'))],
     [sg.T('Example:', font = ('Any', 9,'italic'))],
     [sg.T('Limit hours of interest:', font=('Any 12'))],
-    [sg.T(' ', font=('Any 12'), key = "-whitespace2-", visible = False)],
+    #[sg.T(' ', font=('Any 12'), key = "-whitespace2-", visible = False)],
     [sg.T('', font=('Any 12'))],
     [sg.T('', font=('Any 12'))],
     [sg.Button('Find files', font=('Any 12'),key='-find_files-'), 
@@ -53,23 +53,23 @@ input_values_column = [
      sg.Input('0.3', key="-filter_Wn1-", size=(3,1), font=('Any 12')), 
      sg.Input('30', key="-filter_Wn2-", size=(3,1), font=('Any 12'))],
     [sg.T("a,b = signal.butter(N/2,[Wn1/(fs/2),Wn2/(fs/2)])",  font = ('Any', 9,'italic'))],
-    [sg.T('From (Time, Day, Month, Year):', font = ('Any 12'), key = "-txt1_hours-", visible = False),
+    [sg.T('From:', font = ('Any 12'), key = "-txt1_hours-", visible = False),
      sg.Spin(values=[i for i in range(0, 24)], key="-st_light-", initial_value=7, size=(2, 1), font=('Any 12'), visible = False),
      #sg.Spin(values=[i for i in range(1, 32)], key="-st_light_day-", initial_value=14, size=(2, 1), font=('Any 12'), visible = False),
      #sg.Input(key='-In_date-', size=(8,1), visible = False), sg.CalendarButton('+', close_when_date_chosen=True,  target='-In_date-', location=(0,0), no_titlebar=False, key = "-click_date1-" , visible = False),
-     sg.Spin(values=[i for i in range(1, 32)], key="-In_date_Day-", initial_value=14, size=(2, 1), font=('Any 12'), visible = False),
-     sg.Spin(values=[i for i in range(1, 13)], key="-In_date_Month-", initial_value=4, size=(2, 1), font=('Any 12'), visible = False),
+     #sg.Spin(values=[i for i in range(1, 32)], key="-In_date_Day-", initial_value=14, size=(2, 1), font=('Any 12'), visible = False),
+     #sg.Spin(values=[i for i in range(1, 13)], key="-In_date_Month-", initial_value=4, size=(2, 1), font=('Any 12'), visible = False),
      #sg.Spin(values=[i for i in range(0, 12)], key="-In_date_Year-", initial_value=7, size=(2, 1), font=('Any 12'), visible = False),
-     sg.Input('2022', key="-In_date_Year-", size=(4,1), font=('Any 12'), visible = False),
-     sg.Checkbox('', change_submits = True, enable_events=True, default=False, key='-limit_hours-', font=('Any 12'))],
-     [sg.T('until:', font = ('Any 12'), key = "-txt3_hours-", visible = False),
+     #sg.Input('2022', key="-In_date_Year-", size=(4,1), font=('Any 12'), visible = False),
+     sg.Checkbox('', change_submits = True, enable_events=True, default=False, key='-limit_hours-', font=('Any 12')),
+     sg.T('until:', font = ('Any 12'), key = "-txt3_hours-", visible = False),
      #sg.Input(key='-Out_date-', size=(8,1), visible = False), sg.CalendarButton('+', close_when_date_chosen=True,  target='-Out_date-', location=(0,0), no_titlebar=False, key = "-click_date2-", visible = False),
-     sg.Spin(values=[i for i in range(0, 24)], key="-sl_light-", initial_value=19, size=(2, 1), font=('Any 12'), visible = False),
-     sg.Spin(values=[i for i in range(1, 32)], key="-Out_date_Day-", initial_value=14, size=(2, 1), font=('Any 12'), visible = False),
-     sg.Spin(values=[i for i in range(1, 13)], key="-Out_date_Month-", initial_value=4, size=(2, 1), font=('Any 12'), visible = False),
+     sg.Spin(values=[i for i in range(0, 24)], key="-sl_light-", initial_value=19, size=(2, 1), font=('Any 12'), visible = False)],
+     #sg.Spin(values=[i for i in range(1, 32)], key="-Out_date_Day-", initial_value=14, size=(2, 1), font=('Any 12'), visible = False),
+     #sg.Spin(values=[i for i in range(1, 13)], key="-Out_date_Month-", initial_value=4, size=(2, 1), font=('Any 12'), visible = False),
      #sg.Spin(values=[i for i in range(0, 12)], key="-In_date_Year-", initial_value=7, size=(2, 1), font=('Any 12'), visible = False),
-     sg.Input('2022', key="-Out_date_Year-", size=(4,1), font=('Any 12'), visible = False), 
-     sg.T('      ', font=('Any 12'), key = "-whitespace-", visible = False)],
+     #sg.Input('2022', key="-Out_date_Year-", size=(4,1), font=('Any 12'), visible = False), 
+     #sg.T('      ', font=('Any 12'), key = "-whitespace-", visible = False)],
     [sg.T('', font=('Any 12'))],
     [sg.Button('', font=('Any 13'),button_color=("white"),border_width=0)],
     [sg.T('', font=('Any 12'))]
@@ -244,10 +244,12 @@ while True:
             if bin_bout:       fig3, ax3 = plt.subplots(figsize=(6,4), dpi=600) #Set plot
             
             
-            group_labels = list(range(index1))
+            #group_labels = list(range(index1))
+            group_labels = []
             for i in range(index1): # Loop through all groups
                 in_ID_temp = []; in_edf_temp = []; in_tsv_temp = []; in_electrode_temp = []; #Initialize storage for user input
-                group_labels[i] = saved_values[f'-group_label-{i}'] #Save group labels to use them in naming of the output file
+                #group_labels[i] = saved_values[f'-group_label-{i}'] #Save group labels to use them in naming of the output file
+                group_labels.append(saved_values[f'-group_label-{i}'])
                 
                 for j in range(n_mice): # Loop through all mice
                     in_ID_temp.append([saved_values[f'-id-({i}, {j})']])
@@ -276,14 +278,14 @@ while True:
                 folder_path = saved_values[f"-group_folder-{i}"] 
                 if bin_power_diag or bin_power_time:
                     data2, n, id_def_time     = get_filtered_data(in_ID, in_edf, in_tsv, in_electrode, i, fs, filter_N, filter_Wn1, filter_Wn2, folder_path)
-                elif bin_bout and not(bin_power_diag or bin_power_time):
-                    data2, n, id_def_time     = get_filtered_data2(in_ID, in_edf, in_tsv, in_electrode, i, fs, filter_N, filter_Wn1, filter_Wn2, folder_path)
+                elif bin_bout:
+                    data3, n3, id_def_time3     = get_filtered_data2(in_ID, in_tsv, i, folder_path)
                     
 
                 #Limit hours
                 if bin_limit_hour: 
-                    In_date = "(" + str(values['-In_date_Month-']) + ", " + str(values['-In_date_Day-']) + ", " + str(values['-In_date_Year-']) + ")"
-                    Out_date = "(" + str(values['-Out_date_Month-']) + ", " + str(values['-Out_date_Day-']) + ", " + str(values['-Out_date_Year-']) + ")"
+                    #In_date = "(" + str(values['-In_date_Month-']) + ", " + str(values['-In_date_Day-']) + ", " + str(values['-In_date_Year-']) + ")"
+                    #Out_date = "(" + str(values['-Out_date_Month-']) + ", " + str(values['-Out_date_Day-']) + ", " + str(values['-Out_date_Year-']) + ")"
                     #if len(values['-In_date_Day-']) < 6 and len(values['-In_date_Month-']) and len(values['-In_date_Year-']) and len(values['-Out_date_Day-']) > 6 and len(values['-Out_date_Month-']) > 6 and len(values['-Out_date_Year-']) > 6:
                     #    In_date = values['-In_date-']; Out_date = values['-Out_date-']
                     #else: 
@@ -291,7 +293,7 @@ while True:
                     #if type(values['-st_light-']) == int and type(values['-sl_light-']) == int: 
                     In_time = int(values['-st_light-']); Out_time = int(values['-sl_light-'])
                     #else: "ERROR. Clock in limit hours not provided properly as integer. Automatically choosing all available hours."; In_time = 7; Out_time = 7;
-                    print(In_date); print(Out_date); 
+                    #print(In_date); print(Out_date); 
                     
                 #Get export relevant input
                 if values['-sleep_stage-'].isnumeric(): ss = int(values['-sleep_stage-']);
@@ -302,7 +304,8 @@ while True:
                 if bin_power_diag and n > 0:
                     cf_l   = 0.5; cf_h   = 100;
                     if  bin_limit_hour:
-                        st_light, sl_light      =  get_hours(id_def_time[i], [In_time,Out_time], [In_date,Out_date])
+                        #st_light, sl_light      =  get_hours(id_def_time[i], [In_time,Out_time], [In_date,Out_date])
+                        st_light, sl_light      =  get_hours2(id_def_time[i], [In_time,Out_time])
                     else:
                         st_light = int(0); sl_light = int(24*60*60/4)
                     f, AvgTrace, stdP, stdM = power_freq(data2, n, cf_l, cf_h, ss, st_light, sl_light, fs)
@@ -334,7 +337,8 @@ while True:
                     cf_l = float(values['-HZ1-']); cf_h = float(values['-HZ2-']); cf_l_norm = 0.5; cf_h_norm = 30
                     print(cf_l)
                     if bin_limit_hour:
-                        st_light, sl_light      =  get_hours(id_def_time[i], [In_time,Out_time], [In_date,Out_date])
+                        #st_light, sl_light      =  get_hours(id_def_time[i], [In_time,Out_time], [In_date,Out_date])
+                        st_light, sl_light      =  get_hours2(id_def_time[i], [In_time,Out_time])
                     else:
                         st_light = int(0); sl_light = int(24*60*60/4)
                     #print(bin_limit_hour); print(st_light); print(sl_light);
@@ -409,8 +413,8 @@ while True:
             if bin_power_time: 
                 fig2.savefig(add_path_separator(values['-export_path-'], 'PowerTime' + 'plot' + '-'.join(group_labels) ))
                 
-        else:
-            break
+        #else:
+        #    break
     
     elif event == '-power_time-':
         window1['-power_time-'].update(visible=False)
@@ -426,19 +430,19 @@ while True:
         window1['-txt1_hours-'].update(visible=values['-limit_hours-'])
         window1['-st_light-'].update(visible=values['-limit_hours-'])
         #window1['-txt2_hours-'].update(visible=values['-limit_hours-'])
-        window1['-In_date_Day-'].update(visible=values['-limit_hours-'])
-        window1['-In_date_Month-'].update(visible=values['-limit_hours-'])
-        window1['-In_date_Year-'].update(visible=values['-limit_hours-'])
+        #window1['-In_date_Day-'].update(visible=values['-limit_hours-'])
+        #window1['-In_date_Month-'].update(visible=values['-limit_hours-'])
+        #window1['-In_date_Year-'].update(visible=values['-limit_hours-'])
         #window1['-click_date1-'].update(visible=values['-limit_hours-'])
         window1['-txt3_hours-'].update(visible=values['-limit_hours-'])
         window1['-sl_light-'].update(visible=values['-limit_hours-'])
-        window1['-Out_date_Day-'].update(visible=values['-limit_hours-'])
-        window1['-Out_date_Month-'].update(visible=values['-limit_hours-'])
-        window1['-Out_date_Year-'].update(visible=values['-limit_hours-'])
+        #window1['-Out_date_Day-'].update(visible=values['-limit_hours-'])
+        #window1['-Out_date_Month-'].update(visible=values['-limit_hours-'])
+        #window1['-Out_date_Year-'].update(visible=values['-limit_hours-'])
         #window1['-click_date2-'].update(visible=values['-limit_hours-'])
         window1['-limit_hours-'].update(visible=True)
-        window1['-whitespace-'].update(visible=True)
-        window1['-whitespace2-'].update(visible=True)
+        #window1['-whitespace-'].update(visible=True)
+        #window1['-whitespace2-'].update(visible=True)
     
     elif event == '-bout_count-':
         window1['-bout_count-'].update(visible=False)
