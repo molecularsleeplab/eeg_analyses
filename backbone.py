@@ -10,8 +10,8 @@ Created on Fri Nov  4 13:48:28 2022
 from scipy import signal
 import numpy as np
 from datetime import datetime
-#import mne
-import mne_lib.mne
+import mne
+#import mne_lib.mne
 import os
 from scipy import signal
 import matplotlib.pyplot as plt
@@ -136,8 +136,8 @@ def get_filtered_data(in_ID, in_edf, in_tsv, in_electrode, group_nr, fs, af, bf,
     if len(range(min(len(edf_files), len(tsv_files)))) > 0:
         for i in range(min(len(edf_files), len(tsv_files))):
             #Read edf file
-            #data = mne.io.read_raw_edf(edf_files[i]); raw_data = data.get_data()
-            data = mne_lib.mne.io.read_raw_edf(edf_files[i]); raw_data = data.get_data()
+            data = mne.io.read_raw_edf(edf_files[i]); raw_data = data.get_data()
+            #data = mne_lib.mne.io.read_raw_edf(edf_files[i]); raw_data = data.get_data()
             #Read tsv file
             raw_string = r"{}".format(tsv_files[i])
             with open(raw_string) as fi: tsv_file = fi.read().splitlines()
@@ -234,6 +234,112 @@ def power_time(data2, n, cf_l, cf_h, cf_l_norm, cf_h_norm, ss, st_light, sl_ligh
     stdM = AvgTrace-SemTrace
 
     return AvgTrace, stdP, stdM 
+
+# %%
+
+import os
+
+def list_files_with_extension(directory_path, extension):
+    """
+    Returns a list of files in the provided directory with the specified extension.
+
+    Args:
+    directory_path (str): The directory path to search for files.
+    extension (str): The file extension to filter files by.
+
+    Returns:
+    list: A list of file paths with the specified extension.
+    """
+    # Check if the directory exists
+    if not os.path.isdir(directory_path):
+        raise ValueError(f"Invalid directory path: {directory_path}")
+
+    # Create an empty list to store file paths
+    file_list = []
+
+    # Iterate over all files in the directory
+    for file_name in os.listdir(directory_path):
+        # Check if the file has the desired extension
+        if file_name.endswith(extension):
+            # If it does, add the file path to the list
+            file_path = os.path.join(directory_path, file_name)
+            file_list.append(file_path)
+
+    return file_list
+
+# %% Function that reads .tsv data from all exisiting files within a group
+
+def get_filtered_data2(in_ID, in_tsv, group_nr, folder_path):
+    #cluster_size = 4; epoch_size = fs*cluster_size                              #cluster and epoch_size
+    
+    #b, a = signal.butter(af/2,[bf/(fs/2),cf/(fs/2)], 'bandpass', analog=False)  #Bandpass filter
+    #Initialization
+    tsv_files = []; id_input = []; data2 = []; start = 0; scores = []; id_def_time = []; n = 0; 
+    if os.path.exists(folder_path):
+        print("Using folder path for group " + str(group_nr))
+        # m = match_files(folder_path); count = 0
+        # for key in m:
+        #     if len(m[key]) == 2:
+        #         count =+ 1
+        #         for k in range(len(m[key])):
+        #             if m[key][k].endswith('.edf'): edf_files.append(add_path_separator(folder_path, m[key][k]))
+        #             if m[key][k].endswith('.tsv'): tsv_files.append(add_path_separator(folder_path, m[key][k]))
+        #         id_input.append(count)
+        tsv_files = list_files_with_extension(folder_path, ".tsv")
+        id_input = list(range(len(tsv_files)))
+    else:                         
+        #Cleaning input such that only files that exist are included
+        for i in range(len(in_tsv[group_nr][1])): #Loops over number of possible mice len(tf[1][1]) ==> this could also be a user input, i.e. maximum number of mice for all groups
+           # if os.path.exists(in_edf[group_nr][1][i][0]) and in_edf[group_nr][1][i][0].endswith('.edf'): edf_files.append(in_edf[group_nr][1][i][0])
+            if os.path.exists(in_tsv[group_nr][1][i][0]) and in_tsv[group_nr][1][i][0].endswith('.tsv'): tsv_files.append(in_tsv[group_nr][1][i][0]); id_input.append(in_ID[group_nr][1][i][0])
+    #Loop through all mice
+    if len(tsv_files) > 0:
+        for i in range(len(tsv_files)):
+            #Read edf file
+            #data = mne.io.read_raw_edf(edf_files[i]); raw_data = data.get_data()
+            #data = mne_lib.mne.io.read_raw_edf(edf_files[i]); raw_data = data.get_data()
+            #Read tsv file
+            raw_string = r"{}".format(tsv_files[i])
+            with open(raw_string) as fi: tsv_file = fi.read().splitlines()
+            
+            #Find indices of information to be retrieved from .tsv
+            Date_idx = find_element_tsv('Date',tsv_file)
+            Time_start_idx = find_element_tsv('Start',tsv_file)
+            Time_end_idx = find_element_tsv('End',tsv_file)
+            
+            #Read scores from observation after Date index
+            for j in range(Date_idx+1,len(tsv_file)):
+                if len(Convert(tsv_file[j])) > 4: ## Needs better error checking
+                    scores.append(int(float(Convert(tsv_file[j])[4]))) 
+            
+            #Read time of experiment from beginning of start/end index to be compared with st_light and sl_light
+            #print(tsv_file[Time_start_idx])
+            Time_start  = datetime.strptime(Convert(tsv_file[Time_start_idx])[2], '%m/%d/%Y %H:%M:%S')
+            Time_end    = datetime.strptime(Convert(tsv_file[Time_end_idx])[2], '%m/%d/%Y %H:%M:%S')
+            id_def_time.append([Time_start, Time_end]) #id_def_time[#mice][2 (0 = start time, 1 = end time)]
+            
+            #(in_electrode[group_nr][1][i][0]) Do check if this is provided and numeric, else just electrode 1. Then only filter this electrode to use less computation and storage. Then electrode is not needed to be provided in any other of the backbone functions.
+            #if in_electrode[group_nr][1][i][0].isnumeric():  electrode= int(in_electrode[group_nr][1][i][0]) - 1
+            #else: electrode = 0; print("ERROR. Electrode number not numeric for group " + str(group_nr) + " and mouse " + str(i) +". Automatically using electrode = 1.")
+            
+            #EEG = filtfilt(b, a, raw_data[electrode,:]*10E6)
+            #EEG1, h = signal.freqs(b, a, raw_data[0,:]); EEG2, h = signal.freqs(b, a, raw_data[1,:]) #apply filter
+            #Store data
+            data_temp = [id_input[i],scores]
+            data2.append(data_temp)
+            n = len(tsv_files)                                 #indicator for number of proper defined mice
+    return data2, n, id_def_time
+
+#path = "/Users/albert/Library/CloudStorage/OneDrive-UniversityofCopenhagen/EEG TOOLBOX/data/Baseline1 copy"
+#d, n1, id_def_time = get_filtered_data2([], [], 0, path)
+#d[#n_mice][0 = id, 1 = scores]
+
+
+
+
+
+
+
 
 
 
