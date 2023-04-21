@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from random import seed
 from random import randint
 import matplotlib.transforms as mtransforms
+from matplotlib.patches import Rectangle
 from backbone import *
 
 
@@ -35,8 +36,9 @@ input_text_column = [
     [sg.T('Example:', font = ('Any', 9,'italic'))],
     [sg.T('Limit hours of interest:', font=('Any 12'))],
     #[sg.T(' ', font=('Any 12'), key = "-whitespace2-", visible = False)],
+    [sg.T('Mark dark hours:', font=('Any 12'))],
     [sg.T('', font=('Any 12'))],
-    [sg.T('', font=('Any 12'))],
+    [sg.T(' ', font=('Any 12'), key = "-bout_bins_text4-", visible = False)],
     [sg.Button('Find files', font=('Any 12'),key='-find_files-'), 
      sg.T('Files have been saved',key = "-saved_prompt-",font=("Any", 12, "italic"), visible = False)],
 ]
@@ -55,24 +57,14 @@ input_values_column = [
     [sg.T("a,b = signal.butter(N/2,[Wn1/(fs/2),Wn2/(fs/2)])",  font = ('Any', 9,'italic'))],
     [sg.T('From:', font = ('Any 12'), key = "-txt1_hours-", visible = False),
      sg.Spin(values=[i for i in range(0, 24)], key="-st_light-", initial_value=7, size=(2, 1), font=('Any 12'), visible = False),
-     #sg.Spin(values=[i for i in range(1, 32)], key="-st_light_day-", initial_value=14, size=(2, 1), font=('Any 12'), visible = False),
-     #sg.Input(key='-In_date-', size=(8,1), visible = False), sg.CalendarButton('+', close_when_date_chosen=True,  target='-In_date-', location=(0,0), no_titlebar=False, key = "-click_date1-" , visible = False),
-     #sg.Spin(values=[i for i in range(1, 32)], key="-In_date_Day-", initial_value=14, size=(2, 1), font=('Any 12'), visible = False),
-     #sg.Spin(values=[i for i in range(1, 13)], key="-In_date_Month-", initial_value=4, size=(2, 1), font=('Any 12'), visible = False),
-     #sg.Spin(values=[i for i in range(0, 12)], key="-In_date_Year-", initial_value=7, size=(2, 1), font=('Any 12'), visible = False),
-     #sg.Input('2022', key="-In_date_Year-", size=(4,1), font=('Any 12'), visible = False),
      sg.Checkbox('', change_submits = True, enable_events=True, default=False, key='-limit_hours-', font=('Any 12')),
      sg.T('until:', font = ('Any 12'), key = "-txt3_hours-", visible = False),
      #sg.Input(key='-Out_date-', size=(8,1), visible = False), sg.CalendarButton('+', close_when_date_chosen=True,  target='-Out_date-', location=(0,0), no_titlebar=False, key = "-click_date2-", visible = False),
      sg.Spin(values=[i for i in range(0, 24)], key="-sl_light-", initial_value=19, size=(2, 1), font=('Any 12'), visible = False)],
-     #sg.Spin(values=[i for i in range(1, 32)], key="-Out_date_Day-", initial_value=14, size=(2, 1), font=('Any 12'), visible = False),
-     #sg.Spin(values=[i for i in range(1, 13)], key="-Out_date_Month-", initial_value=4, size=(2, 1), font=('Any 12'), visible = False),
-     #sg.Spin(values=[i for i in range(0, 12)], key="-In_date_Year-", initial_value=7, size=(2, 1), font=('Any 12'), visible = False),
-     #sg.Input('2022', key="-Out_date_Year-", size=(4,1), font=('Any 12'), visible = False), 
-     #sg.T('      ', font=('Any 12'), key = "-whitespace-", visible = False)],
-    [sg.T('', font=('Any 12'))],
+    [sg.Checkbox('', change_submits = True, enable_events=True, default=True, key='-bin_dark_hours-', font=('Any 12'))],
+    [sg.T(' ', font=('Any 12'), key = "-bout_bins_text3-", visible = False)],
     [sg.Button('', font=('Any 13'),button_color=("white"),border_width=0)],
-    [sg.T('', font=('Any 12'))]
+    [sg.T('', font=('Any 12'))], 
 ]
 
 export_text_column = [
@@ -82,6 +74,7 @@ export_text_column = [
     [sg.T('Power diagram:', font=('Any 12'))],
      [sg.T('Power over time:', font=('Any 12'))],
      [sg.T('Bout counts:', font=('Any 12'))],
+     [sg.T('', key = "-bout_bins_text2-", font=('Any 12'),visible= False)],
     #[sg.T('Merge mice with identical ID within a group:', font=('Any 12'))],
     [sg.T('Export figure(s):', font=('Any 12'))],
     [sg.T('Export data:', font=('Any 12'))],
@@ -101,6 +94,8 @@ export_values_column = [
      sg.Checkbox('', change_submits = True, enable_events=True, default=False,key='-power_time-', font=('Any 11'))],
     [sg.T('Min. bout length',key = '-min_len_bout_text-',font=('Any 12'), visible = False), sg.Spin(values=[i for i in range(1, 24)], key="-min_bout_len-", initial_value=2, size=(1, 1), font=('Any 12'), visible = False),
      sg.Checkbox('', change_submits = True, enable_events=True, default=False,key='-bout_count-', font=('Any 11'))],
+    [sg.T('Bout bins (sec.):',key = '-bout_bins_text-',font=('Any 12'), visible = False), 
+     sg.InputText('8,16,32,60',key="-bout_bins-",size=(10,1),font=('Any 12'),visible= False)],
     [sg.Checkbox('', change_submits = True, enable_events=True, default=True,key='-figures-', font=('Any 11'))],
     [sg.Checkbox('', change_submits = True, enable_events=True, default=False,key='-data_files-', font=('Any 11'))],
     #[sg.Checkbox('', change_submits = True, enable_events=True, default=False,key='-merging-', font=('Any 12'))],
@@ -131,12 +126,6 @@ tab_welcome = [[sg.Text('Welcome to the EEG Toolbox.')]]
 tab_power = layout_power
 tab_placeholder = [[sg.Text('This is a placeholder tab for further analysis')]]
 
-# layout1 = [[sg.TabGroup([[sg.Tab('Welcome', tab_welcome, key='-welcome_tab-'),
-#                          sg.Tab('Power analysis', layout_power, key='-power_tab-'),
-#                          sg.Tab('Bout analysis', tab_placeholder, key='-placeholder_tab-')
-#                          ]], 
-#                         key = "-tabs-", tab_location='top', selected_title_color='blue')
-#             ]]
 
 layout1 = layout_power
 
@@ -202,6 +191,9 @@ window1, window2 = make_win1(), None # starts with 1 window open
 in_ID = []; in_edf = []; in_tsv = []; in_electrode = []; #Initialize user input and computed output arrays
 f = []; AvgTrace = []; stdP = [] ;stdM = []; #Initialize computed output arrays
 
+
+maxy = 0; miny = 0; maxx = 0; minx = 0; start_dark_zg = 0; end_dark_zg = 0;  #Initialize plot ranges
+
 saved_check = 0
 
 while True:
@@ -239,11 +231,12 @@ while True:
             bin_limit_hour      = values['-limit_hours-']
             bin_export_dat      = values['-data_files-']
             bin_bout            = values['-bout_count-']
+            bin_dark            = values['-bin_dark_hours-']
             if bin_power_diag: fig1, ax1 = plt.subplots(figsize=(6,4), dpi=600); int1 = range(0,80) # Set plotting range
-            if bin_power_time: fig2, ax2 = plt.subplots(figsize=(6,4), dpi=600) #Set plot
-            if bin_bout:       fig3, ax3 = plt.subplots(figsize=(6,4), dpi=600) #Set plot
+            if bin_power_time: fig2, ax2 = plt.subplots(figsize=(6,4), dpi=600); #Set plot
+            if bin_bout:       fig3, ax3 = plt.subplots(figsize=(6,4), dpi=600); #Set plot
             
-            
+
             #group_labels = list(range(index1))
             group_labels = []
             for i in range(index1): # Loop through all groups
@@ -265,7 +258,6 @@ while True:
                 else: print("ERROR. 'fs' not numeric. Automatically choosing sample frewquency s.t. fs = 400"); fs = 400;
                 
                 
-                
                 if isfloat(values['-filter_N-']): filter_N = float(values['-filter_N-']);
                 else: print("ERROR. 'filter_N' not numeric. Automatically choosing filter_N = 8/2"); filter_N = 8/2;
                 if isfloat(values['-filter_Wn1-']): filter_Wn1 = float(values['-filter_Wn1-']);
@@ -276,31 +268,20 @@ while True:
                 
                 #Compute filtered data to get preprossered data 
                 folder_path = saved_values[f"-group_folder-{i}"] 
-                if bin_power_diag or bin_power_time:
-                    data2, n, id_def_time     = get_filtered_data(in_ID, in_edf, in_tsv, in_electrode, i, fs, filter_N, filter_Wn1, filter_Wn2, folder_path)
-                elif bin_bout:
-                    data3, n3, id_def_time3     = get_filtered_data2(in_ID, in_tsv, i, folder_path)
+                if bin_power_diag or bin_power_time: data2, n, id_def_time = get_filtered_data(in_ID, in_edf, in_tsv, in_electrode, i, fs, filter_N, filter_Wn1, filter_Wn2, folder_path)
+                if bin_bout: data3, n3, id_def_time3 = get_filtered_data2(in_ID, in_tsv, i, folder_path); 
                     
 
                 #Limit hours
                 if bin_limit_hour: 
-                    #In_date = "(" + str(values['-In_date_Month-']) + ", " + str(values['-In_date_Day-']) + ", " + str(values['-In_date_Year-']) + ")"
-                    #Out_date = "(" + str(values['-Out_date_Month-']) + ", " + str(values['-Out_date_Day-']) + ", " + str(values['-Out_date_Year-']) + ")"
-                    #if len(values['-In_date_Day-']) < 6 and len(values['-In_date_Month-']) and len(values['-In_date_Year-']) and len(values['-Out_date_Day-']) > 6 and len(values['-Out_date_Month-']) > 6 and len(values['-Out_date_Year-']) > 6:
-                    #    In_date = values['-In_date-']; Out_date = values['-Out_date-']
-                    #else: 
-                    #    print("ERROR. Dates in limit not provided. Choosing random dates"); In_date = '(12, 7, 2022)'; Out_date = '(12, 7, 2022)';
-                    #if type(values['-st_light-']) == int and type(values['-sl_light-']) == int: 
                     In_time = int(values['-st_light-']); Out_time = int(values['-sl_light-'])
-                    #else: "ERROR. Clock in limit hours not provided properly as integer. Automatically choosing all available hours."; In_time = 7; Out_time = 7;
-                    #print(In_date); print(Out_date); 
                     
                 #Get export relevant input
                 if values['-sleep_stage-'].isnumeric(): ss = int(values['-sleep_stage-']);
                 else: print("ERROR. Sleep stage not numeric. Automatically choosing sleep stage = 1"); ss = 1;
                 bin_limit_hour = values['-limit_hours-']
                 
-                # Power across frequencies
+                #===================== Power across frequencies ===============
                 if bin_power_diag and n > 0:
                     cf_l   = 0.5; cf_h   = 100;
                     if  bin_limit_hour:
@@ -332,7 +313,7 @@ while True:
                     if bin_export_dat: 
                         np.savetxt(add_path_separator(values['-export_path-'], 'PowerFreq_' + 'data_' + str(group_labels[i]) + '_group_' + str(i)), a_freq, delimiter=",",header='AvgTrace, stdP, stdM') 
 
-                #Power across time   
+                #====================== Power across time =====================  
                 if bin_power_time and n > 0:
                     cf_l = float(values['-HZ1-']); cf_h = float(values['-HZ2-']); cf_l_norm = 0.5; cf_h_norm = 30
                     print(cf_l)
@@ -341,7 +322,8 @@ while True:
                         st_light, sl_light      =  get_hours2(id_def_time[i], [In_time,Out_time])
                     else:
                         st_light = int(0); sl_light = int(24*60*60/4)
-                    #print(bin_limit_hour); print(st_light); print(sl_light);
+                    print(st_light); print(sl_light)
+
                     AvgTrace, stdP, stdM = power_time(data2, n, cf_l, cf_h, cf_l_norm, cf_h_norm, ss, st_light, sl_light, fs)
                     a_time = np.asarray([ AvgTrace, stdP, stdM  ]);
                     #Plot
@@ -364,46 +346,127 @@ while True:
                         idx_start = 0
                         idx_end = 24
                     
-                    ax2.plot(range(idx_end - idx_start), AvgTrace, '-', linewidth =1, 
+                    ax2.plot(range((idx_end - idx_start)%24), AvgTrace, '-', linewidth =1, 
                             label = saved_values[f'-group_label-{i}'], 
                             color = (int(saved_values[f'-group_color_r-{i}'])/256, 
                                      int(saved_values[f'-group_color_g-{i}'])/256, 
                                      int(saved_values[f'-group_color_b-{i}'])/256)
                             )
-                    ax2.fill_between(range(idx_end - idx_start),stdP, stdM, alpha=0.2, 
+                    ax2.fill_between(range((idx_end - idx_start)%24),stdP, stdM, alpha=0.2, 
                                     color = (int(saved_values[f'-group_color_r-{i}'])/256, 
                                              int(saved_values[f'-group_color_g-{i}'])/256, 
                                              int(saved_values[f'-group_color_b-{i}'])/256)
                                     )
-                    #plt.xticks(np.arange(min(t_zeitgeber[idx_start:idx_end]), max(t_zeitgeber[idx_start:idx_end])+1, 1.0))
-                    plt.xticks(range(idx_end - idx_start),t_zeitgeber[idx_start:idx_end])
-                    #trans = mtransforms.blended_transform_factory(ax2.transData, ax2.transAxes)
-                    #ax2.fill_between(range(idx_end - idx_start), 0, 1, where=np.array(t_zeitgeber[idx_start:idx_end]) > 11,
-                    #                facecolor='gray', alpha=0.1, transform=trans)
-                    indic = np.zeros(len(AvgTrace)); indic[:] = np.nan
-                    list = t_zeitgeber[idx_start:idx_end]
-                    for ii in range(len(AvgTrace)): 
-                        if (list[ii] >= light_off - light_on) or (list[ii] > 0 and ii == 0): 
-                            indic[ii] = np.max(stdP*1.1)
-                            
-                            
-                    #ax2.fill_betweenx(AvgTrace, range(idx_end - idx_start), 0, 1, where=np.array(t_zeitgeber[idx_start:idx_end]) > 11,
-                    #                facecolor='gray', alpha=0.1, transform=trans)
-                    ax2.fill_between(range(idx_end - idx_start), indic ,edgecolor="white", alpha = 0.1, color = "gray")
                     
+                    
+                    plt.xticks(range(idx_end - idx_start),t_zeitgeber[idx_start:idx_end])
+                    
+                    tick_dist = t_zeitgeber[idx_start]
+                    
+                    if bin_dark:
+                        maxy = max(max(stdP),maxy); miny = min(min(stdM),maxy); 
+                        #maxx = light_off; minx = light_on; 
+                        #maxx = light_off - light_on; #needs corrections
+                        start_dark_zg = abs(light_off - id_def_time[0][0].hour); print("start dark zg: " + str(start_dark_zg))
+                        end_dark_zg = (start_dark_zg + abs(abs(light_off - light_on)) - 1) % 24; print("end dark zg: " + str(end_dark_zg))
+                        
+                        #maxx = light_off - id_def_time[0][0]
+                        #minx = abs(light_off - light_on) #needs corrections 
+                        if idx_end >= idx_start:
+                            left_half_rect = Rectangle((start_dark_zg - tick_dist, 0), min(end_dark_zg - start_dark_zg, idx_end - start_dark_zg), maxy*2,  alpha = 0.1, color = "gray")
+                            ax2.add_patch(left_half_rect)
+                        else:
+                            left_half_rect1 = Rectangle((start_dark_zg - tick_dist, 0), min(end_dark_zg - start_dark_zg, idx_end - start_dark_zg), maxy*2,  alpha = 0.1, color = "gray")
+                            left_half_rect2 = Rectangle((0 - tick_dist, 0), (end_dark_zg - start_dark_zg)-min(end_dark_zg - start_dark_zg, idx_end - start_dark_zg), maxy*2,  alpha = 0.1, color = "gray")
+                            ax2.add_patch(left_half_rect1)
+                            ax2.add_patch(left_half_rect2)
+                        
+                        
+                        # if end_dark_zg >= start_dark_zg:
+                        #     left_half_rect = Rectangle((start_dark_zg, miny), min(end_dark_zg - start_dark_zg, idx_end - start_dark_zg), maxy - miny,  alpha = 0.1, color = "gray")
+                        #     ax2.add_patch(left_half_rect)
+                        # else: 
+                        #     left_half_rect1 = Rectangle((start_dark_zg, miny), 24-start_dark_zg, maxy - miny,  alpha = 0.1, color = "gray")
+                        #     left_half_rect2 = Rectangle((0, miny), (end_dark_zg - start_dark_zg)-(24-start_dark_zg), maxy - miny,  alpha = 0.1, color = "gray")
+                        #     ax2.add_patch(left_half_rect1)
+                        #     ax2.add_patch( left_half_rect2)
+
+
+                    # indic = np.zeros(len(AvgTrace)); indic[:] = np.nan
+                    # list = t_zeitgeber[idx_start:idx_end]
+                    # for ii in range(len(AvgTrace)): 
+                    #     if (list[ii] >= light_off - light_on) or (list[ii] > 0 and ii == 0): 
+                    #         indic[ii] = np.max(stdP*1.1)
+                            
+                   
+
+                        
                     
                     ax2.legend()
                     
                     # write .csv files 
                     if bin_export_dat: 
                         np.savetxt(add_path_separator(values['-export_path-'], 'PowerTime_' + 'data_' + str(group_labels[i]) + '_group_' + str(i)), a_time, delimiter=",",header='AvgTrace, stdP, stdM') 
+            
+                #======================== Bout bar chart ======================
+                if bin_bout and n3 > 0:
+                    bins = string_to_list(values['-bout_bins-']) 
+                    light_on = int(values['-light_on-']); light_off = int(values['-light_off-']);
+                    min_bout_len = int(values['-min_bout_len-']); print("Min bout length is set to " + str(min_bout_len))
                     
-            
-            
-                    #Bout bar chart
-                    if bin_bout and n > 0:
-                        print("Coming up in a later version")
-                        
+                    if bin_dark:
+                        if bin_limit_hour:
+                            start = In_time; end = Out_time
+                            labs0, hist_nr0 = hist_dat(bins, count_scores_all_mice(data3, ss, min_bout_len, id_def_time3, max(start, light_on ), min(end, light_off) , True)) #hours of interests during light
+                            labs1not, hist_nr1not = hist_dat(bins, count_scores_all_mice(data3, ss, min_bout_len, id_def_time3, max(end, light_off), min(start, light_on), True)) #hours of no interests during dark
+                            labs1, hist_nr1all = hist_dat(bins, count_scores_all_mice(data3, ss, min_bout_len, id_def_time3, light_off, light_on, True)) #all dark hours
+                            hist_nr1 = np.array(hist_nr1all) - np.array(hist_nr1not) #hours of interest during dark = all dark hours - hours of no interests during dark
+                        else:
+                            start = 1; end = 24
+                            labs0, hist_nr0 = hist_dat(bins, count_scores_all_mice(data3, ss, min_bout_len, id_def_time3, light_on, light_off, True))
+                            labs1, hist_nr1 = hist_dat(bins, count_scores_all_mice(data3, ss, min_bout_len, id_def_time3, light_off, light_on, True))
+                                                
+                        labs = np.concatenate((labs0, labs1), axis=0)
+                        hist_nr = np.concatenate((hist_nr0, hist_nr1),  axis=0)
+                    else:
+                        labs, hist_nr =   hist_dat(bins, count_scores_all_mice(data3, ss, min_bout_len, id_def_time3, 1, 24, False))
+                    
+                    a_bout = np.asarray([hist_nr]);
+                    ind = np.arange(len(labs))
+                    
+                    width = 1/(index1+1)
+                    ax3.bar(ind + i*width, hist_nr, width, 
+                            color = (int(saved_values[f'-group_color_r-{i}'])/256, 
+                                     int(saved_values[f'-group_color_g-{i}'])/256, 
+                                     int(saved_values[f'-group_color_b-{i}'])/256), 
+                            label = saved_values[f'-group_label-{i}'])
+                    
+                    
+                    ax3.set_xlabel("Episode duration Bout [B]", fontweight='bold') #Maybe these should be user defined as well?
+                    ax3.set_ylabel("# of episodes") #Maybe these should be user defined as well?
+                    factor = (n3)/2 - 1 
+                    
+                    #ax3.xticks(X_axis + factor*width, X)
+                    #ax3.xticks(rotation=15)
+                    X = labs
+                    X_axis = np.arange(len(X))
+                    
+                    ax3.set_xticks(X_axis + width*i/2)
+                    ax3.set_xticklabels(X, fontdict=None, rotation=90, fontsize = 8)
+                    plt.tight_layout()
+                    
+                    
+                    if bin_dark and i == index1:
+                        ax3.fill_between(range(idx_end - idx_start), indic ,edgecolor="white", alpha = 0.1, color = "gray")
+                    
+                    ax3.legend()
+                    
+                    
+                    # write .csv files 
+                    if bin_export_dat: 
+                        np.savetxt(add_path_separator(values['-export_path-'], 'Bout_' + 'data_' + str(group_labels[i]) + '_group_' + str(i)), a_bout, delimiter=",",header='Scores') 
+                    
+                    
             
             
             
@@ -412,6 +475,8 @@ while True:
                 fig1.savefig(add_path_separator(values['-export_path-'], 'PowerFreq' + 'plot' + '-'.join(group_labels)) )
             if bin_power_time: 
                 fig2.savefig(add_path_separator(values['-export_path-'], 'PowerTime' + 'plot' + '-'.join(group_labels) ))
+            if bin_bout: 
+                fig3.savefig(add_path_separator(values['-export_path-'], 'Bout' + 'plot' + '-'.join(group_labels) ))
                 
         #else:
         #    break
@@ -429,26 +494,23 @@ while True:
         window1['-limit_hours-'].update(visible=False)
         window1['-txt1_hours-'].update(visible=values['-limit_hours-'])
         window1['-st_light-'].update(visible=values['-limit_hours-'])
-        #window1['-txt2_hours-'].update(visible=values['-limit_hours-'])
-        #window1['-In_date_Day-'].update(visible=values['-limit_hours-'])
-        #window1['-In_date_Month-'].update(visible=values['-limit_hours-'])
-        #window1['-In_date_Year-'].update(visible=values['-limit_hours-'])
-        #window1['-click_date1-'].update(visible=values['-limit_hours-'])
         window1['-txt3_hours-'].update(visible=values['-limit_hours-'])
         window1['-sl_light-'].update(visible=values['-limit_hours-'])
-        #window1['-Out_date_Day-'].update(visible=values['-limit_hours-'])
-        #window1['-Out_date_Month-'].update(visible=values['-limit_hours-'])
-        #window1['-Out_date_Year-'].update(visible=values['-limit_hours-'])
-        #window1['-click_date2-'].update(visible=values['-limit_hours-'])
         window1['-limit_hours-'].update(visible=True)
-        #window1['-whitespace-'].update(visible=True)
-        #window1['-whitespace2-'].update(visible=True)
     
     elif event == '-bout_count-':
         window1['-bout_count-'].update(visible=False)
         window1['-min_len_bout_text-'].update(visible=values['-bout_count-'])
         window1['-min_bout_len-'].update(visible=values['-bout_count-'])
+        window1['-bout_bins_text-'].update(visible=values['-bout_count-'])
+        window1['-bout_bins_text2-'].update(visible=values['-bout_count-'])
+        window1['-bout_bins_text3-'].update(visible=values['-bout_count-'])
+        window1['-bout_bins_text4-'].update(visible=values['-bout_count-'])
+        window1['-bout_bins-'].update(visible=values['-bout_count-'])
         window1['-bout_count-'].update(visible=True)
+        
+        
+        
     
     
     elif event == '-find_files-':
@@ -480,8 +542,11 @@ while True:
 
 window.close()
 
-
-#Include merging option
-#Read tsv more stable
+#Power over time fails if limited hours roll over midnight, e.g. 07-03. Correct this in get_hours function 
+#BOUT include dark hours option
+#every 2nd tick on power plot
+#Files not updated proberly after 1st figure produced
+#Grey boxes appear spurious
+#Export all bout data
 #Different deviations - sd or SEM
 

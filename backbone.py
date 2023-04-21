@@ -13,9 +13,10 @@ from datetime import datetime
 import mne
 #import mne_lib.mne
 import os
-from scipy import signal
 import matplotlib.pyplot as plt
 from scipy.signal import butter, filtfilt
+from itertools import groupby
+from itertools import chain
 
 # %% 
 
@@ -108,19 +109,21 @@ def time_points_between(start_time, end_time, n):
 
 def find_time_idx(time_points, start_time, end_time) :
     l = np.full([1, 1, len(time_points)], np.nan)[0][0]
-    
+    hours_dif  = 0 
     if start_time < end_time:
+        hours_dif = end_time - start_time
         for i in range(len(time_points)): 
             if time_points[i].hour >= start_time and time_points[i].hour < end_time: 
-                l[i] = 1*(i+1)
+                l[i] = i+1
                 break
-    elif end_time < start_time: 
+    elif end_time < start_time:
+        hours_dif = 24 - start_time + end_time
         for i in range(len(time_points)): 
             if time_points[i].hour >= start_time or time_points[i].hour < end_time: 
-                l[i] = 1*(i+1)
+                l[i] = i+1
                 break
     idx_start = np.where(l == np.nanmin(l))[0][0]
-    idx_end = idx_start + abs(start_time - end_time) * (len(time_points)/24)
+    idx_end = idx_start + hours_dif * (len(time_points)/24)
     return int(idx_start), int(idx_end)
 
 def get_hours2(recording,user_hour):
@@ -132,8 +135,6 @@ def get_hours2(recording,user_hour):
     st_light, sl_light = find_time_idx(p,user_hour[0], user_hour[1])
     
     return int(st_light), int(sl_light)
-
-
 
 
 
@@ -362,8 +363,128 @@ def get_filtered_data2(in_ID, in_tsv, group_nr, folder_path):
 
 
 
+# %% BOUTS
+
+def flatten_subarrays(arrays):
+    return list(chain.from_iterable(arrays))
+
+def subsequences(arr):
+    subseqs = []
+    for key, group in groupby(arr):
+        subseqs.append(list(group))
+    return subseqs
+
+def clean_subsequences(subs, min_len):
+    lengths = np.zeros(len(subs))
+    for i in range(len(subs)): 
+        lengths[i] = len(subs[i]) #Compute length of all subsequences
+    lengths = np.array(lengths)
+    index = np.where(lengths < min_len)[0] #Find index of all subs to be cleaned
+    idx_keep = list(set(index) ^ set(range(len(subs)))) #Find index of all subs to be kept
+    
+    for i in range(len(index)):
+        if sum(idx_keep < index[i]) == 0:  #handle if first observation is not a real bout. Then carry backwards
+            first_bout = min(idx_keep)
+            last_obs = subs[first_bout][0]
+            for j in range(len(subs[index[i]])):
+                subs[index[i]][j] = last_obs
+        else: #carry forwards
+            bout = max([x for x in idx_keep if x < index[i]])
+            last_obs = subs[bout][0]
+            for j in range(len(subs[index[i]])):
+                subs[index[i]][j] = last_obs
+            
+    return subs
+    
+def clean_scores(arr,min_len):
+    arr = subsequences(arr)
+    arr = clean_subsequences(arr,min_len)
+    arr = flatten_subarrays(arr)
+    return arr
+
+      
+def subsequences_ss(arr, ss):
+    subs = []
+    for key, group in groupby(arr):
+        if key == ss: subs.append(list(group))
+    return subs
+
+def count_subs(arr):
+    lens = []
+    for i in range(len(arr)):
+        lens.append(len(arr[i]))
+    return lens
+        
+def count_scores(arr,ss,min_len):
+    return count_subs(subsequences_ss(clean_scores(arr,min_len),ss))
 
 
 
+def count_scores_all_mice( dat, ss, min_len, id_def_time, light_start, light_end, dark_bin):
+    l = []
+    for i in range(len(dat)):
+        if dark_bin: 
+            idx_start, idx_end = light_hours_idx(id_def_time[i], light_start, light_end)
+        else: 
+            idx_start = 0; idx_end = 21599;
+        #arr = dat[i][1][2]
+        arr = dat[i][1]
+        arr = get_arr_from_idx(arr, idx_start, idx_end)
+        l.append(count_scores(arr,ss,min_len) )
+    return flatten_subarrays(l)
+
+
+def convert_seconds_to_minutes(seconds):
+    if seconds > 60: return np.round(seconds / 60,1)
+    else: return seconds
+
+
+def hist_dat(bin_max, arr):
+    #Takes upper bin limits as input and count_scores as input
+    hist_nr = []
+    labs = []
+    prev = 0; SI_upper = " sec "; SI_lower = " sec "
+    for i in range(len(bin_max)):
+        if  i > 0: prev = bin_max[i-1]
+        hist_nr.append( sum(np.array(arr) <= bin_max[i]))
+        if bin_max[i] > 60: SI_upper = " min " 
+        labs.append(str(convert_seconds_to_minutes(prev)) + SI_lower + "< " + "B <= " + str(convert_seconds_to_minutes(bin_max[i])) + SI_upper)
+        if bin_max[i] > 60: SI_lower = " min " 
+    hist_nr.append(sum(np.array(arr) > bin_max[i]))
+    labs.append("B > " + str(convert_seconds_to_minutes(bin_max[i])) + SI_lower)
+    return labs, hist_nr 
+
+
+
+def light_hours_idx(id_def_time, light_start, light_end):
+    d = light_start - id_def_time[0].hour
+    if d >= 0: 
+        idx_start = d * (21600/24)
+        idx_end = idx_start + (light_end - light_start) * (21600/24)
+    else: 
+        idx_start = 21600 + d * (21600/24)
+        idx_end = idx_start - abs(light_end - light_start) * (21600/24)
+    return int(idx_start), int(idx_end)
+
+
+
+def get_arr_from_idx(arr, idx_start, idx_end):
+    if idx_end >= idx_start:
+        arr = arr[idx_start:idx_end]
+    else:
+        arr = np.roll(arr, len(arr) - idx_start)[:(len(arr) - idx_start + idx_end)]
+    return arr
+
+
+def string_to_list(string):
+    """Converts a comma-separated string to a list of integers."""
+    values = string.split(',')
+    integers = []
+    for value in values:
+        try:
+            integers.append(int(value))
+        except ValueError:
+            pass
+    return integers
 
 
