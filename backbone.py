@@ -124,7 +124,7 @@ def find_time_idx(time_points, start_time, end_time) :
                 break
     idx_start = np.where(l == np.nanmin(l))[0][0]
     idx_end = idx_start + hours_dif * (len(time_points)/24)
-    return int(idx_start), int(idx_end)
+    return int(idx_start), int(idx_end), hours_dif
 
 def get_hours2(recording,user_hour):
     start_time = recording[0]
@@ -132,9 +132,9 @@ def get_hours2(recording,user_hour):
     n = 21600
     
     p = time_points_between(start_time, end_time, n)
-    st_light, sl_light = find_time_idx(p,user_hour[0], user_hour[1])
+    st_light, sl_light, hours_dif = find_time_idx(p,user_hour[0], user_hour[1])
     
-    return int(st_light), int(sl_light)
+    return int(st_light), int(sl_light), hours_dif
 
 
 
@@ -218,20 +218,29 @@ def get_filtered_data(in_ID, in_edf, in_tsv, in_electrode, group_nr, fs, af, bf,
 
 # %% Function for power across frequencies
 
-def power_freq(data2, n, cf_l, cf_h, ss, st_light, sl_light, fs):
+def power_freq(data2, n, cf_l, cf_h, ss, st_light, sl_light, fs, bin_standard):
     p_r = []
     cluster_size = 4
     epoch_size = fs*cluster_size
     f_global = np.arange(0,int(fs/2)+fs/epoch_size, fs/epoch_size )
-
-    for i in range(n):
-        f, P = power2time(data2[i][1], ss, fs, st_light, sl_light)
-        
-        st_id       = np.where(f_global == cf_l)[0][0]
-        sl_id  	    = np.where(f_global == cf_h)[0][0]
-        norm_factor = np.mean(P[st_id:sl_id,:])
-        p_norm      = P/norm_factor*100 
-        p_r.append(np.mean(p_norm,axis = 1))
+    if bin_standard:
+        for i in range(n):
+            f, P = power2time(data2[i][1], ss, fs, st_light, sl_light)
+            
+            st_id       = np.where(f_global == cf_l)[0][0]
+            sl_id  	    = np.where(f_global == cf_h)[0][0]
+            norm_factor = np.mean(P[st_id:sl_id,:])
+            p_norm      = P/norm_factor*100 
+            p_r.append(np.mean(p_norm,axis = 1))
+    else: 
+        for i in range(n):
+            f, P = power2time(data2[i][1], ss, fs, st_light, sl_light)
+            
+            st_id       = np.where(f_global == cf_l)[0][0]
+            sl_id  	    = np.where(f_global == cf_h)[0][0]
+            #norm_factor = np.mean(P[st_id:sl_id,:])
+            p_norm      = P#/norm_factor*100 
+            p_r.append(np.mean(p_norm,axis = 1))
     
     traces = p_r
     AvgTrace = np.mean(traces, axis = 0)
@@ -247,7 +256,7 @@ def power_freq(data2, n, cf_l, cf_h, ss, st_light, sl_light, fs):
 def x_round(x): #Rounds to nearest quarter decimal
     return round(x*4)/4
 
-def power_time(data2, n, cf_l, cf_h, cf_l_norm, cf_h_norm, ss, st_light, sl_light, fs):
+def power_time(data2, n, cf_l, cf_h, cf_l_norm, cf_h_norm, ss, st_light, sl_light, fs, bin_standard):
     cf_l = x_round(cf_l); cf_h = x_round(cf_h)
     
     pnorm   = []; l_all   = []; t       = []
@@ -263,6 +272,8 @@ def power_time(data2, n, cf_l, cf_h, cf_l_norm, cf_h_norm, ss, st_light, sl_ligh
         sl_id_norm = np.where(f_global == cf_h_norm)[0][0]
         norm       = np.mean(P[st_id_norm:sl_id_norm,:])
         pnorm.append([])
+        
+        if not(bin_standard): norm = 100
         
         for j in range(len(t)-1):
             f, P = power2time(data2[i][1], ss, fs, t[j], t[j+1])

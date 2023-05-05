@@ -37,6 +37,7 @@ input_text_column = [
     [sg.T('Limit hours of interest:', font=('Any 12'))],
     #[sg.T(' ', font=('Any 12'), key = "-whitespace2-", visible = False)],
     [sg.T('Mark dark hours:', font=('Any 12'))],
+    [sg.T('Standardization:', font=('Any 12'))],
     [sg.T('', font=('Any 12'))],
     [sg.T(' ', font=('Any 12'), key = "-bout_bins_text4-", visible = False)],
     [sg.Button('Find files', font=('Any 12'),key='-find_files-'), 
@@ -62,6 +63,7 @@ input_values_column = [
      #sg.Input(key='-Out_date-', size=(8,1), visible = False), sg.CalendarButton('+', close_when_date_chosen=True,  target='-Out_date-', location=(0,0), no_titlebar=False, key = "-click_date2-", visible = False),
      sg.Spin(values=[i for i in range(0, 24)], key="-sl_light-", initial_value=19, size=(2, 1), font=('Any 12'), visible = False)],
     [sg.Checkbox('', change_submits = True, enable_events=True, default=True, key='-bin_dark_hours-', font=('Any 12'))],
+    [sg.Checkbox('', change_submits = True, enable_events=True, default=True, key='-bin_standard-', font=('Any 12'))],
     [sg.T(' ', font=('Any 12'), key = "-bout_bins_text3-", visible = False)],
     [sg.Button('', font=('Any 13'),button_color=("white"),border_width=0)],
     [sg.T('', font=('Any 12'))], 
@@ -81,13 +83,17 @@ export_text_column = [
     [sg.T('Export to path:',font=('Any 12'))],
     [sg.T('Daylight hours:', font=('Any 12'))],
     [sg.Button('', font=('Any 12'),button_color=("white"),border_width=0)], 
-    [sg.T('', font=('Any 12'))]
+    [sg.T('', font=('Any 12'))],
+    [sg.T('', font=('Any 12'))],
 ]
 
 export_values_column = [
     [sg.T('', font=('Any 12'))], 
-    [sg.T('',font=('Any 17'))],
-    [sg.Checkbox('', change_submits = True, enable_events=True, default=False,key='-power_diagram-', font=('Any 11'))],
+    [sg.T('',font=('Any 19'))],
+    [sg.T('Between',key = '-txt11-',font=('Any 12'), visible = False), sg.Input('0.5', key="-cf_l-", size=(3,1), font=('Any 12'), visible = False),
+     sg.T('and',key = '-txt21-',font=('Any 12'), visible = False), sg.Input('100', key="-cf_h-", size=(3,1), font=('Any 12'), visible = False),
+     sg.T('(Hz)',key = '-txt31-', font = ('Any 12'), visible = False),
+     sg.Checkbox('', change_submits = True, enable_events=True, default=False,key='-power_diagram-', font=('Any 11'))],
     [sg.T('Between',key = '-txt1-',font=('Any 12'), visible = False), sg.Input('1', key="-HZ1-", size=(2,1), font=('Any 12'), visible = False),
      sg.T('and',key = '-txt2-',font=('Any 12'), visible = False), sg.Input('3.5', key="-HZ2-", size=(2,1), font=('Any 12'), visible = False),
      sg.T('(Hz)',key = '-txt3-', font = ('Any 12'), visible = False),
@@ -103,7 +109,7 @@ export_values_column = [
     [sg.Spin(values=[i for i in range(0, 24)], key="-light_on-", initial_value=7, size=(2, 1), font=('Any 12'), visible = True),
     sg.T('until:', font = ('Any 12'), key = "-txt3_hours-", visible = True),
     sg.Spin(values=[i for i in range(0, 24)], key="-light_off-", initial_value=19, size=(2, 1), font=('Any 12'), visible = True)],
-    #[sg.T('', font=('Any 11'))],
+    [sg.T('', font=('Any 11'))],
     [sg.T('', font=('Any 12'))], 
     [sg.Button('Run', font=('Any 12'), key='-Run-')]
 ]
@@ -214,8 +220,8 @@ while True:
     
     elif event == 'Save':
         window, event, values = sg.read_all_windows()
-        saved_check = 1
         saved_values = values
+        saved_check = 1
         window.close()
         if window == window2:       # if closing win 2, mark as closed
             window2 = None
@@ -232,6 +238,7 @@ while True:
             bin_export_dat      = values['-data_files-']
             bin_bout            = values['-bout_count-']
             bin_dark            = values['-bin_dark_hours-']
+            bin_standard        = values['-bin_standard-']
             if bin_power_diag: fig1, ax1 = plt.subplots(figsize=(6,4), dpi=600); int1 = range(0,80) # Set plotting range
             if bin_power_time: fig2, ax2 = plt.subplots(figsize=(6,4), dpi=600); #Set plot
             if bin_bout:       fig3, ax3 = plt.subplots(figsize=(6,4), dpi=600); #Set plot
@@ -283,18 +290,23 @@ while True:
                 
                 #===================== Power across frequencies ===============
                 if bin_power_diag and n > 0:
-                    cf_l   = 0.5; cf_h   = 100;
+                    #cf_l   = 0.5; cf_h   = 100;
+                    cf_l = float(values['-cf_l-']); cf_h = float(values['-cf_h-']);
                     if  bin_limit_hour:
                         #st_light, sl_light      =  get_hours(id_def_time[i], [In_time,Out_time], [In_date,Out_date])
-                        st_light, sl_light      =  get_hours2(id_def_time[i], [In_time,Out_time])
+                        #print(id_def_time); print(len(id_def_time)); print(In_time); print(Out_time)
+                        st_light, sl_light, hours_dif  =  get_hours2(id_def_time[0], [In_time,Out_time])
                     else:
                         st_light = int(0); sl_light = int(24*60*60/4)
-                    f, AvgTrace, stdP, stdM = power_freq(data2, n, cf_l, cf_h, ss, st_light, sl_light, fs)
+                    f, AvgTrace, stdP, stdM = power_freq(data2, n, cf_l, cf_h, ss, st_light, sl_light, fs, bin_standard)
                     a_freq = np.asarray([ AvgTrace, stdP, stdM  ]);
                     #Plot
                     ax1.set_xlim([0, 20]) # Set xlim wrt. plotting range
                     ax1.set_xlabel("Frequency [Hz]", fontweight='bold') #Maybe these should be user defined as well?
-                    ax1.set_ylabel("Relative EEG Power [% average power]") #Maybe these should be user defined as well?
+                    if bin_standard: #Maybe these should be user defined as well?
+                        ax1.set_ylabel("Relative EEG Power [% average power]") 
+                    else: 
+                        ax1.set_ylabel("EEG Power") 
                     
                     ax1.plot(f[int1], AvgTrace[int1], '-', linewidth = 1, 
                             label = saved_values[f'-group_label-{i}'],
@@ -319,18 +331,22 @@ while True:
                     print(cf_l)
                     if bin_limit_hour:
                         #st_light, sl_light      =  get_hours(id_def_time[i], [In_time,Out_time], [In_date,Out_date])
-                        st_light, sl_light      =  get_hours2(id_def_time[i], [In_time,Out_time])
+                        #print(id_def_time[i]); print(In_time); print(Out_time)
+                        st_light, sl_light, hours_dif =  get_hours2(id_def_time[0], [In_time,Out_time])
                     else:
                         st_light = int(0); sl_light = int(24*60*60/4)
-                    print(st_light); print(sl_light)
 
-                    AvgTrace, stdP, stdM = power_time(data2, n, cf_l, cf_h, cf_l_norm, cf_h_norm, ss, st_light, sl_light, fs)
+
+                    AvgTrace, stdP, stdM = power_time(data2, n, cf_l, cf_h, cf_l_norm, cf_h_norm, ss, st_light, sl_light, fs, bin_standard)
                     a_time = np.asarray([ AvgTrace, stdP, stdM  ]);
+                    
                     #Plot
-                    #ax2.set_xlim([0, 24]) # Set xlim wrt. plotting range
-                    #ax2.set_ylim([150, 500]) # Set xlim wrt. plotting range
                     ax2.set_xlabel("Hours [ZT]", fontweight='bold') #Maybe these should be user defined as well?
-                    ax2.set_ylabel("Relative EEG Power [% average power]") #Maybe these should be user defined as well?
+                    if bin_standard: #Maybe these should be user defined as well?
+                        ax1.set_ylabel("Relative EEG Power [% average power]") 
+                    else: 
+                        ax1.set_ylabel("EEG Power") 
+                    
                     
                     
                     light_on = int(values['-light_on-']); light_off = int(values['-light_off-']);
@@ -341,66 +357,32 @@ while True:
                     
                     if  bin_limit_hour:
                         idx_start = In_time - id_def_time[0][0].hour
-                        idx_end = idx_start+(Out_time - In_time)
+                        idx_end = idx_start + hours_dif
+                        x_range = range((idx_end - idx_start)%24)
                     else: 
                         idx_start = 0
                         idx_end = 24
+                        x_range = range(24)
                     
-                    ax2.plot(range((idx_end - idx_start)%24), AvgTrace, '-', linewidth =1, 
+                    ax2.plot(x_range, AvgTrace, '-', linewidth =1, 
                             label = saved_values[f'-group_label-{i}'], 
                             color = (int(saved_values[f'-group_color_r-{i}'])/256, 
                                      int(saved_values[f'-group_color_g-{i}'])/256, 
                                      int(saved_values[f'-group_color_b-{i}'])/256)
                             )
-                    ax2.fill_between(range((idx_end - idx_start)%24),stdP, stdM, alpha=0.2, 
+                    ax2.fill_between(x_range,stdP, stdM, alpha=0.2, 
                                     color = (int(saved_values[f'-group_color_r-{i}'])/256, 
                                              int(saved_values[f'-group_color_g-{i}'])/256, 
                                              int(saved_values[f'-group_color_b-{i}'])/256)
                                     )
                     
-                    
-                    plt.xticks(range(idx_end - idx_start),t_zeitgeber[idx_start:idx_end])
-                    
-                    tick_dist = t_zeitgeber[idx_start]
-                    
+                    plt.xticks(x_range,t_zeitgeber[idx_start:idx_end])
+                                        
                     if bin_dark:
-                        maxy = max(max(stdP),maxy); miny = min(min(stdM),maxy); 
-                        #maxx = light_off; minx = light_on; 
-                        #maxx = light_off - light_on; #needs corrections
-                        start_dark_zg = abs(light_off - id_def_time[0][0].hour); print("start dark zg: " + str(start_dark_zg))
-                        end_dark_zg = (start_dark_zg + abs(abs(light_off - light_on)) - 1) % 24; print("end dark zg: " + str(end_dark_zg))
-                        
-                        #maxx = light_off - id_def_time[0][0]
-                        #minx = abs(light_off - light_on) #needs corrections 
-                        if idx_end >= idx_start:
-                            left_half_rect = Rectangle((start_dark_zg - tick_dist, 0), min(end_dark_zg - start_dark_zg, idx_end - start_dark_zg), maxy*2,  alpha = 0.1, color = "gray")
-                            ax2.add_patch(left_half_rect)
-                        else:
-                            left_half_rect1 = Rectangle((start_dark_zg - tick_dist, 0), min(end_dark_zg - start_dark_zg, idx_end - start_dark_zg), maxy*2,  alpha = 0.1, color = "gray")
-                            left_half_rect2 = Rectangle((0 - tick_dist, 0), (end_dark_zg - start_dark_zg)-min(end_dark_zg - start_dark_zg, idx_end - start_dark_zg), maxy*2,  alpha = 0.1, color = "gray")
-                            ax2.add_patch(left_half_rect1)
-                            ax2.add_patch(left_half_rect2)
-                        
-                        
-                        # if end_dark_zg >= start_dark_zg:
-                        #     left_half_rect = Rectangle((start_dark_zg, miny), min(end_dark_zg - start_dark_zg, idx_end - start_dark_zg), maxy - miny,  alpha = 0.1, color = "gray")
-                        #     ax2.add_patch(left_half_rect)
-                        # else: 
-                        #     left_half_rect1 = Rectangle((start_dark_zg, miny), 24-start_dark_zg, maxy - miny,  alpha = 0.1, color = "gray")
-                        #     left_half_rect2 = Rectangle((0, miny), (end_dark_zg - start_dark_zg)-(24-start_dark_zg), maxy - miny,  alpha = 0.1, color = "gray")
-                        #     ax2.add_patch(left_half_rect1)
-                        #     ax2.add_patch( left_half_rect2)
-
-
-                    # indic = np.zeros(len(AvgTrace)); indic[:] = np.nan
-                    # list = t_zeitgeber[idx_start:idx_end]
-                    # for ii in range(len(AvgTrace)): 
-                    #     if (list[ii] >= light_off - light_on) or (list[ii] > 0 and ii == 0): 
-                    #         indic[ii] = np.max(stdP*1.1)
-                            
-                   
-
-                        
+                        start_dark = np.where(np.array(t_zeitgeber[idx_start:idx_end]) == 12)[0][0]
+                        end_dark = np.where(np.array(t_zeitgeber[idx_start:idx_end]) == max(t_zeitgeber[idx_start:idx_end]))[0][0]
+                        dif_dark = min(abs(light_on - light_off), abs(end_dark - start_dark))
+                        ax2.axvspan( start_dark, start_dark + dif_dark, facecolor = "gray", alpha = 0.1)   
                     
                     ax2.legend()
                     
@@ -489,6 +471,15 @@ while True:
         window1['-HZ2-'].update(visible=values['-power_time-'])
         window1['-txt3-'].update(visible=values['-power_time-'])
         window1['-power_time-'].update(visible=True)
+        
+    elif event == '-power_diagram-':
+        window1['-power_diagram-'].update(visible=False)
+        window1['-txt11-'].update(visible=values['-power_diagram-'])
+        window1['-cf_l-'].update(visible=values['-power_diagram-'])
+        window1['-txt21-'].update(visible=values['-power_diagram-'])
+        window1['-cf_h-'].update(visible=values['-power_diagram-'])
+        window1['-txt31-'].update(visible=values['-power_diagram-'])
+        window1['-power_diagram-'].update(visible=True)
     
     elif event == '-limit_hours-':
         window1['-limit_hours-'].update(visible=False)
@@ -532,6 +523,7 @@ while True:
                         window2[f'-edf-({i}, {j})'].update(saved_values[f'-edf-({i}, {j})'])
                         window2[f'-tsv-({i}, {j})'].update(saved_values[f'-tsv-({i}, {j})'])
                         window2[f'-electrode-({i}, {j})'].update(saved_values[f'-electrode-({i}, {j})'])
+
                         
     # elif event == '-click_date1-':
     #     date = sg.popup_get_date()
@@ -542,11 +534,10 @@ while True:
 
 window.close()
 
-#Power over time fails if limited hours roll over midnight, e.g. 07-03. Correct this in get_hours function 
-#BOUT include dark hours option
+#Option for choosing cf_l and cf_h in power_freq. Also, make an option for removing standardization.
+#Handle "mark dark hours". Should work fine now for power across time. Check one more time and implement hereafter on boutplots.
 #every 2nd tick on power plot
 #Files not updated proberly after 1st figure produced
-#Grey boxes appear spurious
 #Export all bout data
 #Different deviations - sd or SEM
 
