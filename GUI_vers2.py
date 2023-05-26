@@ -45,7 +45,7 @@ input_text_column = [
 ]
 
 input_values_column = [
-    [sg.T('',font=('Any 17'))],
+    [sg.T('',font=('Any 15'))],
     [sg.T('', font=('Any 12'))], 
     #[sg.HSeparator(pad = (0,0))],
      #[sg.Spin(values=[i for i in range(1, 50)], key="-n_groups-", initial_value=2, size=(2, 1), font=('Any 12'))],
@@ -65,7 +65,7 @@ input_values_column = [
     [sg.Checkbox('', change_submits = True, enable_events=True, default=True, key='-bin_dark_hours-', font=('Any 12'))],
     [sg.Checkbox('', change_submits = True, enable_events=True, default=True, key='-bin_standard-', font=('Any 12'))],
     [sg.T(' ', font=('Any 12'), key = "-bout_bins_text3-", visible = False)],
-    [sg.Button('', font=('Any 13'),button_color=("white"),border_width=0)],
+    [sg.Button('', font=('Any 12'),button_color=("white"),border_width=0)],
     [sg.T('', font=('Any 12'))], 
 ]
 
@@ -105,7 +105,7 @@ export_values_column = [
     [sg.Checkbox('', change_submits = True, enable_events=True, default=True,key='-figures-', font=('Any 11'))],
     [sg.Checkbox('', change_submits = True, enable_events=True, default=False,key='-data_files-', font=('Any 11'))],
     #[sg.Checkbox('', change_submits = True, enable_events=True, default=False,key='-merging-', font=('Any 12'))],
-    [sg.InputText('/Users/albert/Desktop/',key="-export_path-",size=(20,1),font=('Any 12'))],
+    [sg.InputText('/Users/albert/Desktop/',key="-export_path-",size=(30,1),font=('Any 12'))],
     [sg.Spin(values=[i for i in range(0, 24)], key="-light_on-", initial_value=7, size=(2, 1), font=('Any 12'), visible = True),
     sg.T('until:', font = ('Any 12'), key = "-txt3_hours-", visible = True),
     sg.Spin(values=[i for i in range(0, 24)], key="-light_off-", initial_value=19, size=(2, 1), font=('Any 12'), visible = True)],
@@ -343,9 +343,9 @@ while True:
                     #Plot
                     ax2.set_xlabel("Hours [ZT]", fontweight='bold') #Maybe these should be user defined as well?
                     if bin_standard: #Maybe these should be user defined as well?
-                        ax1.set_ylabel("Relative EEG Power [% average power]") 
+                        ax2.set_ylabel("Relative EEG Power [% average power]") 
                     else: 
-                        ax1.set_ylabel("EEG Power") 
+                        ax2.set_ylabel("EEG Power") 
                     
                     
                     
@@ -510,7 +510,7 @@ while True:
             if type(values['-n_mice-']) == int: n_mice = int(values['-n_mice-'])
             else: print("ERROR. Number of mice is not numeric. Automatically choosing 10"); n_mice = 10; 
             window2 = make_win2(n_mice)
-            #Make sure that user input is saved if reopening the window 2
+            #User input is saved if reopening the window 2
             if saved_check:
                 for i in range(index1):
                     window2[f'-group_label-{i}'].update(saved_values[f'-group_label-{i}'])
@@ -524,17 +524,8 @@ while True:
                         window2[f'-tsv-({i}, {j})'].update(saved_values[f'-tsv-({i}, {j})'])
                         window2[f'-electrode-({i}, {j})'].update(saved_values[f'-electrode-({i}, {j})'])
 
-                        
-    # elif event == '-click_date1-':
-    #     date = sg.popup_get_date()
-    #     window1['-In_date-'].update(date)
-    # elif event == '-click_date2-':
-    #     date = sg.popup_get_date()
-    #     window1['-Out_date-'].update(date)
-
 window.close()
 
-#Option for choosing cf_l and cf_h in power_freq. Also, make an option for removing standardization.
 #Handle "mark dark hours". Should work fine now for power across time. Check one more time and implement hereafter on boutplots.
 #every 2nd tick on power plot
 #Files not updated proberly after 1st figure produced
