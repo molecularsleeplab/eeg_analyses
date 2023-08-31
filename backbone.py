@@ -573,3 +573,42 @@ def string_to_list(string):
         except ValueError:
             pass
     return integers
+
+# =======================================
+# ========= Transition matrix ===========
+# =======================================
+
+def construct_ss_array(dat, min_len):
+    l = []
+    for i in range(len(dat)):
+        l.append(dat[i][1])        
+    return clean_scores(flatten_subarrays(l), min_len)
+
+def compute_transition_matrix(arr):
+    unique_integers = np.unique(arr)
+    num_unique = len(unique_integers)
+    transition_matrix = np.zeros((num_unique, num_unique), dtype=int)
+    
+    for i in range(len(arr) - 1):
+        current_integer = arr[i]
+        next_integer = arr[i + 1]
+        
+        current_index = np.where(unique_integers == current_integer)[0][0]
+        next_index = np.where(unique_integers == next_integer)[0][0]
+        
+        transition_matrix[current_index, next_index] += 1
+    
+    return transition_matrix
+
+
+def construct_ss_array2(dat, min_len, id_def_time, light_start, light_end, bin_limit_hour):
+    l = []
+    for i in range(len(dat)):
+        if bin_limit_hour:
+            idx_start, idx_end = light_hours_idx(id_def_time[i], light_start, light_end)
+        else:
+            idx_start = 0
+            idx_end = 21599
+        arr = get_arr_from_idx(dat[i][1], idx_start, idx_end)
+        l.append(arr)        
+    return clean_scores(flatten_subarrays(l), min_len)
